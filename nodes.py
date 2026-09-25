@@ -210,7 +210,9 @@ SAFETY & INTEGRITY RULES
 ═══════════════════════════════════════
 IMAGE GENERATION
 ═══════════════════════════════════════
-Use generate_image_asset whenever the user asks for a picture, diagram, illustration, schematic, or visual asset on its own (not part of a slide deck or poster — see those sections for the required media-then-markup ordering). After the tool returns, embed the image inline using the exact HTML `<img>` tag the tool gave you, and mention that it's downloadable via the link shown.
+Use generate_image_asset ONLY when the user asks for a standalone diagram, illustration, schematic, or picture on its own.
+NEVER call generate_image_asset or any other tool when asked to generate a presentation, slide deck, or research poster. Presentations and posters are interactive structured markup that must be emitted directly in your first response!
+After the tool returns, embed the image inline using the exact HTML `<img>` tag the tool gave you, and mention that it's downloadable via the link shown.
 
 ═══════════════════════════════════════
 VIDEO GENERATION
@@ -275,7 +277,8 @@ When the user asks to generate, design, or build a presentation, slide deck, or 
    </poster>
 
 CRITICAL RULES FOR PRESENTATIONS & POSTERS:
-- Output the `<presentation>` or `<poster>` block IMMEDIATELY in your response. Do NOT wait for a second turn or ask for confirmation first.
+- Output the `<presentation>` or `<poster>` block IMMEDIATELY in your response. Do NOT call any tools (do NOT call generate_image_asset). Do NOT wait for a second turn or ask for confirmation first.
+- NEVER use the INDUSTRIAL format (## Summary, ## Checks, etc.) for presentations or posters.
 - The content inside `<slide>` and `<section>` tags MUST be clean Markdown bullet points and text. Do NOT wrap content in HTML tags like `<p>` or `<div>`.
 - If an image asset URL is already available, you may embed it as `![Diagram Description](url)`. Otherwise, focus on delivering rich, insightful, high-value bullet points and technical analysis.
 - After the closing `</presentation>` or `</poster>` tag, tell the user they can view the interactive canvas and download the native file (.pptx for slide decks, .pdf for posters) using the download button in the canvas panel.
@@ -297,15 +300,32 @@ def classify_intent(state: ChatState) -> dict:
     last_msg = state["messages"][-1]
     if isinstance(last_msg.content, list):
         texts = [part.get("text", "") for part in last_msg.content if isinstance(part, dict) and part.get("type") == "text"]
-        text = " ".join(texts).lower()
+        full_text = " ".join(texts)
     else:
-        text = last_msg.content.lower() if isinstance(last_msg.content, str) else ""
+        full_text = last_msg.content if isinstance(last_msg.content, str) else ""
 
-    if any(kw in text for kw in settings.ESCALATE_ON_KEYWORDS):
+    # Separate user prompt from attached document dump:
+    # Documents attached via build_human_message are prefixed with:
+    # "[Content of uploaded document" or "[Uploaded "
+    prompt_only = full_text
+    for sep in ["[content of uploaded document", "[uploaded "]:
+        if sep in prompt_only.lower():
+            prompt_only = prompt_only[:prompt_only.lower().index(sep)]
+    prompt_lower = prompt_only.strip().lower()
+
+    # Priority 1: Presentation & Poster intent (creation tasks must NEVER be forced into industrial diagnostic or escalation format)
+    is_presentation = any(kw in prompt_lower for kw in ["presentation", "slide", "slides", "deck", "pitch deck", "powerpoint"])
+    is_poster = any(kw in prompt_lower for kw in ["poster", "scientific poster", "research poster", "conference poster"])
+
+    if is_presentation:
+        intent = "presentation"
+    elif is_poster:
+        intent = "poster"
+    elif any(kw in prompt_lower for kw in settings.ESCALATE_ON_KEYWORDS):
         intent = "escalation"
-    elif any(kw in text for kw in ["status", "equipment", "pump", "press", "belt", "sensor"]):
+    elif any(kw in prompt_lower for kw in ["status", "equipment", "pump", "press", "belt", "sensor"]):
         intent = "technical_support"
-    elif any(kw in text for kw in ["protocol", "sop", "procedure", "policy", "handover"]):
+    elif any(kw in prompt_lower for kw in ["protocol", "sop", "procedure", "policy", "handover"]):
         intent = "knowledge_query"
     else:
         intent = "general"

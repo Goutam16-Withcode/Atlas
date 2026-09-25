@@ -282,7 +282,9 @@ def search_knowledge_base(query: str) -> str:
 # ---------------------------------------------------------------------
 @tool
 def generate_image_asset(prompt: str) -> str:
-    """Generate a high-quality creative image, diagram, or poster asset using AI.
+    """Generate a standalone illustration, schematic, or diagram image using AI.
+    DO NOT use this tool for presentations, slide decks, or multi-section research posters.
+    Presentations and posters MUST be written directly as structured markup (<presentation> or <poster>).
     Provide a detailed prompt of what the image should contain (e.g. 'schematic diagram of a hydraulic pump').
     Returns a stable, locally-hosted, downloadable URL."""
     import urllib.parse

@@ -672,37 +672,110 @@
   .slide-body-content li{margin-bottom:8px;}
 
   .poster-workbench {
-    display: flex;justify-content: center;align-items: flex-start;min-height: 100%;
-    padding: 40px;background: #F1F5F9;overflow: auto;box-sizing: border-box;width: 100%;
+    display: flex; justify-content: center; align-items: flex-start; min-height: 100%;
+    padding: 24px; background: #F8FAFC; overflow: auto; box-sizing: border-box; width: 100%;
   }
   .poster-board {
-    background: #FFFFFF;color: #0F172A;border: 4px solid #E2E8F0;border-radius: var(--radius-md);
-    padding: 40px;width: 1200px;min-height: 850px;display: flex;flex-direction: column;gap: 30px;
-    box-shadow: 0 20px 50px rgba(15,23,42,0.08);box-sizing: border-box;transform-origin: top center;
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);flex-shrink: 0;
+    background: #FFFFFF; color: #0F172A; border: 2px solid #E2E8F0; border-radius: var(--radius-lg);
+    padding: 32px; width: 100%; max-width: 1080px; min-height: 700px; display: flex; flex-direction: column; gap: 24px;
+    box-shadow: 0 16px 40px rgba(15,23,42,0.06); box-sizing: border-box; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .poster-header {
     background: linear-gradient(135deg, #EEF2FF 0%, #E0F2FE 100%);
-    border: 1px solid #C7D2FE;border-radius: var(--radius-md);padding: 28px;text-align: center;box-sizing: border-box;
+    border: 1px solid #C7D2FE; border-radius: var(--radius-md); padding: 24px; text-align: center; box-sizing: border-box;
   }
-  .poster-domain {font-size: 0.85rem;text-transform: uppercase;font-weight: 800;letter-spacing: 0.15em;color: #4F46E5;margin-bottom: 8px;}
-  .poster-title-text {font-family: var(--font-display);font-size: 2.2rem;font-weight: 700;color: #0F172A;margin-bottom: 10px;line-height: 1.25;}
-  .poster-authors {font-size: 1.02rem;color: #64748B;font-style: italic;font-weight: 500;}
-  .poster-grid {display: grid;grid-template-columns: repeat(3, 1fr);gap: 24px;flex: 1;box-sizing: border-box;}
-  .poster-column {display: flex;flex-direction: column;gap: 24px;box-sizing: border-box;}
+  .poster-domain {font-size: 0.82rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.15em; color: #4F46E5; margin-bottom: 6px;}
+  .poster-title-text {font-family: var(--font-display); font-size: 1.85rem; font-weight: 700; color: #0F172A; margin-bottom: 8px; line-height: 1.25;}
+  .poster-authors {font-size: 0.95rem; color: #64748B; font-style: italic; font-weight: 500;}
+  .poster-grid {display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; flex: 1; box-sizing: border-box;}
+  .poster-column {display: flex; flex-direction: column; gap: 20px; box-sizing: border-box;}
   .poster-card {
-    background: #FFFFFF;border: 1px solid #E2E8F0;border-radius: var(--radius-md);padding: 20px;
-    display: flex;flex-direction: column;gap: 12px;box-shadow: 0 2px 8px rgba(15,23,42,0.04);box-sizing: border-box;
+    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: var(--radius-md); padding: 18px;
+    display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 8px rgba(15,23,42,0.04); box-sizing: border-box;
   }
-  .poster-card:hover {border-color: #C7D2FE;box-shadow: 0 6px 18px rgba(79, 70, 229, 0.08);}
+  .poster-card:hover {border-color: #C7D2FE; box-shadow: 0 6px 18px rgba(79, 70, 229, 0.08);}
   .poster-card-title {
-    font-family: var(--font-display);font-size: 1.02rem;font-weight: 700;color: #4F46E5;
-    border-left: 4px solid #4F46E5;padding-left: 10px;text-transform: uppercase;letter-spacing: 0.05em;margin: 0 0 4px 0;
+    font-family: var(--font-display); font-size: 0.98rem; font-weight: 700; color: #4F46E5;
+    border-left: 3px solid #4F46E5; padding-left: 8px; text-transform: uppercase; letter-spacing: 0.04em; margin: 0;
   }
-  .poster-card-content {font-size: 0.88rem;color: #334155;line-height: 1.6;}
-  .poster-card-content p {margin-bottom: 10px;}
+  .poster-card-content {font-size: 0.88rem; color: #334155; line-height: 1.6;}
+  .poster-card-content p {margin-bottom: 8px;}
   .poster-card-content p:last-child {margin-bottom: 0;}
-  .poster-card-content img {max-width: 100%;max-height: 220px;object-fit: contain;border-radius: var(--radius-md);border: 1px solid #E2E8F0;margin: 12px auto;display: block;}
+  .poster-card-content img {max-width: 100%; max-height: 200px; object-fit: contain; border-radius: var(--radius-md); border: 1px solid #E2E8F0; margin: 10px auto; display: block;}
+
+  /* In-Chat Presentation & Poster Cards */
+  .deck-chat-card, .poster-chat-card {
+    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: var(--radius-md);
+    margin: 14px 0 6px 0; overflow: hidden; box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+  }
+  .deck-chat-header, .poster-chat-header {
+    display: flex; align-items: flex-start; gap: 12px; padding: 16px;
+    background: linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%);
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .poster-chat-header {
+    background: linear-gradient(135deg, #F8FAFC 0%, #ECFDF5 100%);
+  }
+  .deck-chat-icon, .poster-chat-icon {
+    width: 38px; height: 38px; border-radius: 8px; background: #FFFFFF;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid #E2E8F0; flex-shrink: 0;
+  }
+  .deck-chat-info, .poster-chat-info {flex: 1;}
+  .deck-chat-badge, .poster-chat-badge {
+    font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #4F46E5; margin-bottom: 2px;
+  }
+  .poster-chat-badge { color: #059669; }
+  .deck-chat-title, .poster-chat-title {
+    font-size: 1.05rem; font-weight: 700; color: #0F172A; margin: 0 0 2px 0; line-height: 1.3;
+  }
+  .deck-chat-meta, .poster-chat-meta {
+    font-size: 0.8rem; color: #64748B;
+  }
+  .deck-chat-slides-preview, .poster-chat-sections-preview {
+    padding: 10px 16px; display: flex; flex-direction: column; gap: 6px;
+    max-height: 180px; overflow-y: auto; background: #FFFFFF;
+  }
+  .deck-preview-item, .poster-preview-item {
+    display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 6px;
+    font-size: 0.82rem; color: #334155; cursor: pointer; transition: all 0.15s ease;
+    border: 1px solid transparent; background: #F8FAFC;
+  }
+  .deck-preview-item:hover, .poster-preview-item:hover {
+    background: #EEF2FF; border-color: #C7D2FE; color: #4F46E5;
+  }
+  .poster-preview-item:hover { background: #ECFDF5; border-color: #A7F3D0; color: #059669; }
+  .deck-preview-num {
+    width: 20px; height: 20px; border-radius: 4px; background: #EEF2FF; color: #4F46E5;
+    font-weight: 700; font-size: 0.72rem; display: flex; align-items: center; justify-content: center;
+  }
+  .poster-preview-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #10B981; flex-shrink: 0;
+  }
+  .deck-preview-title, .poster-preview-title {
+    font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .deck-chat-actions, .poster-chat-actions {
+    display: flex; align-items: center; gap: 8px; padding: 12px 16px;
+    background: #FAFAFA; border-top: 1px solid #E2E8F0;
+  }
+  .deck-btn-present, .poster-btn-view {
+    background: #4F46E5; color: #FFFFFF; border: none; border-radius: 6px;
+    padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; transition: all 0.18s ease;
+  }
+  .deck-btn-present:hover { background: #4338CA; transform: translateY(-1px); }
+  .poster-btn-view { background: #059669; }
+  .poster-btn-view:hover { background: #047857; transform: translateY(-1px); }
+  .deck-btn-download, .poster-btn-download {
+    background: #FFFFFF; color: #0F172A; border: 1px solid #CBD5E1; border-radius: 6px;
+    padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; transition: all 0.18s ease;
+  }
+  .deck-btn-download:hover, .poster-btn-download:hover {
+    background: #F1F5F9; border-color: #94A3B8;
+  }
 
   /* MCP Integrations Panel */
   .mcp-modal-overlay{
@@ -2025,16 +2098,18 @@
     });
 
     return `
-      <div class="poster-board">
-        <div class="poster-header">
-          <span class="poster-domain">${escapeHTML(domain || 'Scientific Research')}</span>
-          <h1 class="poster-title-text">${escapeHTML(title)}</h1>
-          <div class="poster-authors">${escapeHTML(authors || 'Lead Researcher')}</div>
-        </div>
-        <div class="poster-grid">
-          <div class="poster-column">${col1HTML}</div>
-          <div class="poster-column">${col2HTML}</div>
-          <div class="poster-column">${col3HTML}</div>
+      <div class="poster-workbench">
+        <div class="poster-board">
+          <div class="poster-header">
+            <span class="poster-domain">${escapeHTML(domain || 'Scientific Research')}</span>
+            <h1 class="poster-title-text">${escapeHTML(title)}</h1>
+            <div class="poster-authors">${escapeHTML(authors || 'Lead Researcher')}</div>
+          </div>
+          <div class="poster-grid">
+            <div class="poster-column">${col1HTML}</div>
+            <div class="poster-column">${col2HTML}</div>
+            <div class="poster-column">${col3HTML}</div>
+          </div>
         </div>
       </div>
     `;
@@ -2083,7 +2158,7 @@
   }
 
   function finalizeAssistantMessage(row, content) {
-    const bodyHTML = marked.parse(content);
+    let bodyHTML = marked.parse(content);
     const contentArea = row.querySelector('.message-content');
     contentArea.innerHTML = bodyHTML;
 
@@ -2155,7 +2230,178 @@
       });
     });
 
-    if (!row.querySelector('.artifact-cta-card')) {
+    // Check for Interactive Presentation Markup
+    const presTagMatch = content.match(/<presentation([\s\S]*?)>([\s\S]*?)(?:<\/presentation>|$)/i);
+    if (presTagMatch) {
+      const attrs = presTagMatch[1];
+      const slidesBlock = presTagMatch[2];
+
+      let title = "Presentation";
+      const titleMatch = attrs.match(/title=["']([^"']+)["']/i);
+      if (titleMatch) title = titleMatch[1];
+
+      const slides = [];
+      const slideRegex = /<slide([\s\S]*?)>([\s\S]*?)(?:<\/slide>|(?=<slide)|$)/gi;
+      let slideMatch;
+      while ((slideMatch = slideRegex.exec(slidesBlock)) !== null) {
+        const sAttrs = slideMatch[1];
+        const sContent = slideMatch[2];
+        let sTitle = `Slide ${slides.length + 1}`;
+        const sTitleMatch = sAttrs.match(/title=["']([^"']+)["']/i);
+        if (sTitleMatch) sTitle = sTitleMatch[1];
+        const cleanContent = sContent.trim();
+        if (cleanContent) {
+          slides.push({ title: sTitle, content: cleanContent });
+        }
+      }
+
+      if (slides.length > 0) {
+        window.currentPresentationSlides = slides;
+        window.currentPresentationTitle = title;
+
+        const presWidget = `
+          <div class="deck-chat-card">
+            <div class="deck-chat-header">
+              <div class="deck-chat-icon"><i data-lucide="presentation" style="width:20px;height:20px;color:#4F46E5;"></i></div>
+              <div class="deck-chat-info">
+                <div class="deck-chat-badge">Interactive Slide Deck</div>
+                <h3 class="deck-chat-title">${escapeHTML(title)}</h3>
+                <div class="deck-chat-meta">${slides.length} Interactive Slides &bull; Export to PowerPoint / PDF</div>
+              </div>
+            </div>
+            <div class="deck-chat-slides-preview">
+              ${slides.map((s, idx) => `
+                <div class="deck-preview-item" onclick="launchSlideDeck(${idx})">
+                  <span class="deck-preview-num">${idx + 1}</span>
+                  <span class="deck-preview-title">${escapeHTML(s.title)}</span>
+                  <i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--text-muted);margin-left:auto;"></i>
+                </div>
+              `).join('')}
+            </div>
+            <div class="deck-chat-actions">
+              <button type="button" class="deck-btn-present" onclick="launchSlideDeck(0)">
+                <i data-lucide="play" style="width:14px;height:14px;"></i> Launch Slide Deck
+              </button>
+              <button type="button" class="deck-btn-download" onclick="downloadCurrentArtifact('pptx')">
+                <i data-lucide="download" style="width:14px;height:14px;"></i> Download Deck
+              </button>
+            </div>
+          </div>
+        `;
+
+        const cleanChatText = content.replace(/```[a-z]*\s*<presentation[\s\S]*?<\/presentation>\s*```/gi, '')
+                                     .replace(/<presentation[\s\S]*?(?:<\/presentation>|$)/gi, '')
+                                     .trim();
+        contentArea.innerHTML = (cleanChatText ? marked.parse(cleanChatText) : '') + presWidget;
+
+        window.launchSlideDeck = function(initialIndex = 0) {
+          currentDownloadKind = 'pptx';
+          const dlBtn = document.getElementById('canvas-download');
+          if (dlBtn) dlBtn.style.display = 'flex';
+          openCanvasPanel(createSlidePlayerHTML(title, slides), title, true);
+          if (typeof setSlide === 'function') setSlide(initialIndex);
+          lucide.createIcons();
+        };
+
+        window.downloadCurrentArtifact = function(kind) {
+          currentDownloadKind = kind;
+          const dlBtn = document.getElementById('canvas-download');
+          if (dlBtn) dlBtn.click();
+        };
+
+        // Automatically open the slide deck in canvas immediately
+        window.launchSlideDeck(0);
+      }
+    }
+
+    // Check for Interactive Poster Markup
+    const posterTagMatch = content.match(/<poster([\s\S]*?)>([\s\S]*?)(?:<\/poster>|$)/i);
+    if (posterTagMatch) {
+      const attrs = posterTagMatch[1];
+      const sectionsBlock = posterTagMatch[2];
+
+      let title = "Research Poster", authors = "Lead Researcher", domain = "Scientific Domain";
+      const titleM = attrs.match(/title=["']([^"']+)["']/i);
+      if (titleM) title = titleM[1];
+      const authorsM = attrs.match(/authors=["']([^"']+)["']/i);
+      if (authorsM) authors = authorsM[1];
+      const domainM = attrs.match(/domain=["']([^"']+)["']/i);
+      if (domainM) domain = domainM[1];
+
+      const sections = [];
+      const secRegex = /<section([\s\S]*?)>([\s\S]*?)(?:<\/section>|(?=<section)|$)/gi;
+      let secMatch;
+      while ((secMatch = secRegex.exec(sectionsBlock)) !== null) {
+        const secAttrs = secMatch[1];
+        const secContent = secMatch[2];
+        let secTitle = `Section ${sections.length + 1}`;
+        const secTitleMatch = secAttrs.match(/title=["']([^"']+)["']/i);
+        if (secTitleMatch) secTitle = secTitleMatch[1];
+        const cleanContent = secContent.trim();
+        if (cleanContent) {
+          sections.push({ title: secTitle, content: cleanContent });
+        }
+      }
+
+      if (sections.length > 0) {
+        window.currentPosterSections = sections;
+        window.currentPosterTitle = title;
+
+        const posterWidget = `
+          <div class="poster-chat-card">
+            <div class="poster-chat-header">
+              <div class="poster-chat-icon"><i data-lucide="award" style="width:20px;height:20px;color:#059669;"></i></div>
+              <div class="poster-chat-info">
+                <div class="poster-chat-badge">${escapeHTML(domain || 'Academic Research')}</div>
+                <h3 class="poster-chat-title">${escapeHTML(title)}</h3>
+                <div class="poster-chat-meta">${escapeHTML(authors || 'Lead Researcher')} &bull; ${sections.length} Conference Sections</div>
+              </div>
+            </div>
+            <div class="poster-chat-sections-preview">
+              ${sections.map((s, idx) => `
+                <div class="poster-preview-item" onclick="launchPosterWorkbench()">
+                  <span class="poster-preview-dot"></span>
+                  <span class="poster-preview-title">${escapeHTML(s.title)}</span>
+                  <i data-lucide="external-link" style="width:13px;height:13px;color:var(--text-muted);margin-left:auto;"></i>
+                </div>
+              `).join('')}
+            </div>
+            <div class="poster-chat-actions">
+              <button type="button" class="poster-btn-view" onclick="launchPosterWorkbench()">
+                <i data-lucide="eye" style="width:14px;height:14px;"></i> View Full Poster Board
+              </button>
+              <button type="button" class="poster-btn-download" onclick="downloadCurrentArtifact('poster-pdf')">
+                <i data-lucide="download" style="width:14px;height:14px;"></i> Download Poster PDF
+              </button>
+            </div>
+          </div>
+        `;
+
+        const cleanChatText = content.replace(/```[a-z]*\s*<poster[\s\S]*?<\/poster>\s*```/gi, '')
+                                     .replace(/<poster[\s\S]*?(?:<\/poster>|$)/gi, '')
+                                     .trim();
+        contentArea.innerHTML = (cleanChatText ? marked.parse(cleanChatText) : '') + posterWidget;
+
+        window.launchPosterWorkbench = function() {
+          currentDownloadKind = 'poster-pdf';
+          const dlBtn = document.getElementById('canvas-download');
+          if (dlBtn) dlBtn.style.display = 'flex';
+          openCanvasPanel(createPosterHTML(title, authors, domain, sections), title, true);
+          lucide.createIcons();
+        };
+
+        window.downloadCurrentArtifact = function(kind) {
+          currentDownloadKind = kind;
+          const dlBtn = document.getElementById('canvas-download');
+          if (dlBtn) dlBtn.click();
+        };
+
+        // Automatically open the poster workbench in canvas immediately
+        window.launchPosterWorkbench();
+      }
+    }
+
+    if (!row.querySelector('.artifact-cta-card') && !presTagMatch && !posterTagMatch) {
       if (content.includes('## Summary') || content.includes('## Findings') || content.includes('## Recommendation')) {
         const cta = document.createElement('div');
         cta.className = 'artifact-cta-card';
@@ -2170,92 +2416,6 @@
           openCanvasPanel(bodyHTML, 'Operations diagnostic report', true);
         });
         row.querySelector('.message-bubble').insertBefore(cta, row.querySelector('.message-bubble').lastElementChild);
-      }
-
-      const presTagMatch = content.match(/<presentation([\s\S]*?)>([\s\S]*?)<\/presentation>/i);
-      if (presTagMatch) {
-        const attrs = presTagMatch[1];
-        const slidesBlock = presTagMatch[2];
-
-        let title = "Presentation";
-        const titleMatch = attrs.match(/title=["']([^"']+)["']/i);
-        if (titleMatch) title = titleMatch[1];
-
-        const slides = [];
-        const slideRegex = /<slide([\s\S]*?)>([\s\S]*?)<\/slide>/gi;
-        let slideMatch;
-        while ((slideMatch = slideRegex.exec(slidesBlock)) !== null) {
-          const sAttrs = slideMatch[1];
-          const sContent = slideMatch[2];
-          let sTitle = "Slide";
-          const sTitleMatch = sAttrs.match(/title=["']([^"']+)["']/i);
-          if (sTitleMatch) sTitle = sTitleMatch[1];
-          slides.push({ title: sTitle, content: sContent });
-        }
-
-        if (slides.length > 0) {
-          const cta = document.createElement('div');
-          cta.className = 'artifact-cta-card';
-          cta.innerHTML = `
-            <div class="artifact-cta-info">
-              <i data-lucide="presentation" style="color:var(--accent-secondary);"></i>
-              <div style="font-size:.8rem;"><strong>Slide deck ready</strong><br><span style="color:var(--text-muted);">${slides.length} slides generated. Click to present.</span></div>
-            </div>
-            <button class="btn-open-artifact" type="button">Open slides</button>
-          `;
-          cta.querySelector('.btn-open-artifact').addEventListener('click', () => {
-            currentDownloadKind = 'pptx';
-            document.getElementById('canvas-download').style.display = 'flex';
-            openCanvasPanel(createSlidePlayerHTML(title, slides), title, true);
-            lucide.createIcons();
-          });
-          row.querySelector('.message-bubble').insertBefore(cta, row.querySelector('.message-bubble').lastElementChild);
-        }
-      }
-
-      const posterTagMatch = content.match(/<poster([\s\S]*?)>([\s\S]*?)<\/poster>/i);
-      if (posterTagMatch) {
-        const attrs = posterTagMatch[1];
-        const sectionsBlock = posterTagMatch[2];
-
-        let title = "Research Poster", authors = "Lead Researcher", domain = "Scientific Domain";
-        const titleM = attrs.match(/title=["']([^"']+)["']/i);
-        if (titleM) title = titleM[1];
-        const authorsM = attrs.match(/authors=["']([^"']+)["']/i);
-        if (authorsM) authors = authorsM[1];
-        const domainM = attrs.match(/domain=["']([^"']+)["']/i);
-        if (domainM) domain = domainM[1];
-
-        const sections = [];
-        const secRegex = /<section([\s\S]*?)>([\s\S]*?)<\/section>/gi;
-        let secMatch;
-        while ((secMatch = secRegex.exec(sectionsBlock)) !== null) {
-          const secAttrs = secMatch[1];
-          const secContent = secMatch[2];
-          let secTitle = "Section";
-          const secTitleMatch = secAttrs.match(/title=["']([^"']+)["']/i);
-          if (secTitleMatch) secTitle = secTitleMatch[1];
-          sections.push({ title: secTitle, content: secContent });
-        }
-
-        if (sections.length > 0) {
-          const cta = document.createElement('div');
-          cta.className = 'artifact-cta-card';
-          cta.innerHTML = `
-            <div class="artifact-cta-info">
-              <i data-lucide="award" style="color:var(--success);"></i>
-              <div style="font-size:.8rem;"><strong>Research poster formatted</strong><br><span style="color:var(--text-muted);">Scientific layout ready in canvas workspace.</span></div>
-            </div>
-            <button class="btn-open-artifact" type="button">View poster</button>
-          `;
-          cta.querySelector('.btn-open-artifact').addEventListener('click', () => {
-            currentDownloadKind = 'poster-pdf';
-            document.getElementById('canvas-download').style.display = 'flex';
-            openCanvasPanel(createPosterHTML(title, authors, domain, sections), title, true);
-            lucide.createIcons();
-          });
-          row.querySelector('.message-bubble').insertBefore(cta, row.querySelector('.message-bubble').lastElementChild);
-        }
       }
     }
 

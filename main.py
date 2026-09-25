@@ -1375,17 +1375,21 @@ def export_pptx(thread_id: str, request: Request, session_id: Optional[str] = Co
 
     try:
         pptx_path = build_pptx(parsed["title"], parsed["slides"])
-    except ImportError:
-        raise HTTPException(status_code=500, detail="python-pptx is not installed on the server. Run: pip install python-pptx")
     except Exception as e:
         logger.error(f"pptx export failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to build presentation file.")
 
-    filename = f"{parsed['title'][:40].strip().replace(' ', '_') or 'presentation'}.pptx"
+    if pptx_path.endswith(".pdf"):
+        filename = f"{parsed['title'][:40].strip().replace(' ', '_') or 'presentation'}.pdf"
+        media_type = "application/pdf"
+    else:
+        filename = f"{parsed['title'][:40].strip().replace(' ', '_') or 'presentation'}.pptx"
+        media_type = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+
     write_audit(username, "export_pptx", detail=thread_id, ip=client_ip(request))
     return FileResponse(
         pptx_path,
-        media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        media_type=media_type,
         filename=filename,
     )
 
