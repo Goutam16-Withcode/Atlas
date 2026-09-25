@@ -210,12 +210,15 @@
   .dashboard-container.hidden{opacity:0;pointer-events:none;}
 
   .sidebar{
-    width:var(--sidebar-width);background-color:#FFFFFF;
+    width:var(--sidebar-width);min-width:var(--sidebar-width);background-color:#FFFFFF;
     border-right:1px solid var(--border-color);display:flex;flex-direction:column;height:100%;
-    z-index:10;transition:width var(--transition-speed) cubic-bezier(.4,0,.2,1), transform var(--transition-speed) cubic-bezier(.4,0,.2,1);
-    box-shadow:1px 0 3px rgba(15, 23, 42, 0.02);
+    z-index:20;transition:width var(--transition-speed) cubic-bezier(.4,0,.2,1), min-width var(--transition-speed) cubic-bezier(.4,0,.2,1), margin-left var(--transition-speed) cubic-bezier(.4,0,.2,1);
+    box-shadow:1px 0 3px rgba(15, 23, 42, 0.02);overflow:hidden;flex-shrink:0;white-space:nowrap;
   }
-  .sidebar.collapsed{width:0;transform:translateX(-100%);border-right:none;}
+  .sidebar.collapsed{
+    width:0 !important;min-width:0 !important;margin-left:calc(-1 * var(--sidebar-width)) !important;
+    border-right:none !important;pointer-events:none;visibility:hidden;
+  }
 
   .sidebar-header{padding:16px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-color);}
   .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text-main);}
@@ -275,14 +278,20 @@
   .mcp-sidebar-badge.visible{display:flex;}
 
   /* Search Chats Input */
-  .sidebar-search{padding:0 14px 10px 14px; position:relative;}
+  .sidebar-search{padding:0 14px 10px 14px; position:relative; display:flex; align-items:center;}
+  .search-input-icon{position:absolute; left:24px; width:15px; height:15px; color:#94A3B8; pointer-events:none;}
   .sidebar-search input{
-    width:100%; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:var(--radius-md);
-    padding:8px 12px 8px 34px; font-size:.82rem; outline:none; font-family:var(--font-body);
-    color:#0F172A; transition:all .2s ease; box-shadow:0 1px 2px rgba(15, 23, 42, 0.03);
+    width:100%; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:var(--radius-md);
+    padding:8px 30px 8px 34px; font-size:.82rem; outline:none; font-family:var(--font-body);
+    color:#0F172A; transition:all .2s ease;
   }
-  .sidebar-search input:focus{border-color:#6366F1; box-shadow:0 0 0 3px rgba(99, 102, 241, 0.12);}
+  .sidebar-search input:focus{background:#FFFFFF; border-color:#6366F1; box-shadow:0 0 0 3px rgba(99, 102, 241, 0.12);}
   .sidebar-search input::placeholder{color:#94A3B8;}
+  .btn-clear-search{
+    position:absolute; right:22px; background:transparent; border:none; color:#94A3B8;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; padding:2px;
+  }
+  .btn-clear-search:hover{color:#0F172A;}
 
 
   .threads-container{flex:1;overflow-y:auto;padding:0 8px 16px 8px;display:flex;flex-direction:column;gap:4px;}
@@ -511,15 +520,48 @@
   .welcome-card-info p{font-size:.82rem;color:#64748B;line-height:1.45;margin:0;}
 
   /* Floating Minimalist Composer */
-  /* Floating Minimalist Composer */
-  .composer-container{width:100%;display:flex;flex-direction:column;align-items:center;padding:0 20px 20px 20px;position:relative;}
+  .composer-container{width:100%;display:flex;flex-direction:column;align-items:center;padding:0 20px 22px 20px;position:relative;}
   .composer-wrapper{
-    width:100%;max-width:820px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:20px;
-    padding:10px 14px;display:flex;flex-direction:column;
-    box-shadow:0 8px 30px -4px rgba(15, 23, 42, 0.06), 0 2px 8px -2px rgba(15, 23, 42, 0.03);
+    width:100%;max-width:820px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:24px;
+    padding:8px 14px;display:flex;flex-direction:column;
+    box-shadow:0 8px 30px -4px rgba(15, 23, 42, 0.07), 0 2px 8px -2px rgba(15, 23, 42, 0.03);
     transition:all .2s ease;
   }
   .composer-wrapper:focus-within{border-color:#6366F1;box-shadow:0 0 0 3px rgba(99, 102, 241, 0.12), 0 10px 32px -4px rgba(15, 23, 42, 0.08);}
+
+  .attachment-preview-bar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px;padding:4px 6px;}
+  .attachment-preview-card{
+    background:#F8FAFC;border:1px solid #E2E8F0;border-radius:var(--radius-sm);padding:6px 10px;
+    display:flex;align-items:center;gap:8px;font-size:.8rem;position:relative;max-width:180px;color:#0F172A;
+  }
+  .attachment-preview-card img{width:24px;height:24px;border-radius:4px;object-fit:cover;}
+  .attachment-preview-card span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+  .btn-remove-attachment{background:#FEE2E2;border:none;color:var(--danger);border-radius:50%;cursor:pointer;width:16px;height:16px;display:flex;align-items:center;justify-content:center;}
+
+  .composer-input-row{display:flex;align-items:center;gap:8px;width:100%;}
+  .btn-attachment-upload,.btn-voice-input{
+    background:transparent;border:none;color:#94A3B8;cursor:pointer;width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;transition:all .18s ease;flex-shrink:0;
+  }
+  .btn-attachment-upload:hover,.btn-voice-input:hover{color:#0F172A;background:#F1F5F9;}
+  .btn-voice-input.listening{color:var(--danger);background:#FEE2E2;animation:pulseRecord 1.5s infinite ease-in-out;}
+  @keyframes pulseRecord{0%,100%{opacity:1;}50%{opacity:.5;}}
+
+  .composer-textarea{
+    flex:1;background:transparent;border:none;outline:none;color:#0F172A;font-family:var(--font-body);
+    font-size:.95rem;line-height:1.5;resize:none;max-height:200px;min-height:24px;padding:8px 4px;
+  }
+  .composer-textarea::placeholder{color:#94A3B8;}
+
+  .btn-send{
+    width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(135deg, #4F46E5 0%, #6366F1 100%);
+    color:#fff;border:none;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .18s ease;flex-shrink:0;
+    box-shadow:0 2px 8px rgba(79, 70, 229, 0.3);
+  }
+  .btn-send:hover:not(:disabled){transform:scale(1.06);box-shadow:0 4px 12px rgba(79, 70, 229, 0.4);}
+  .btn-send:disabled{background:#E2E8F0;color:#94A3B8;cursor:not-allowed;box-shadow:none;}
 
   /* Modals */
   .modal-overlay{
@@ -782,21 +824,16 @@
     <div class="portal-info">
       <div>
         <div class="portal-brand">
-          <svg class="portal-logo" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg class="portal-logo" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="portalAtlasGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+              <linearGradient id="portalAtlasGrad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stop-color="#4F46E5"/>
-                <stop offset="60%" stop-color="#6366F1"/>
-                <stop offset="100%" stop-color="#0EA5E9"/>
-              </linearGradient>
-              <linearGradient id="portalGlow" x1="0" y1="0" x2="0" y2="40" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.3"/>
-                <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+                <stop offset="100%" stop-color="#06B6D4"/>
               </linearGradient>
             </defs>
-            <rect width="40" height="40" rx="11" fill="url(#portalAtlasGrad)"/>
-            <rect width="40" height="40" rx="11" fill="url(#portalGlow)"/>
-            <path d="M20 8L8.8 30.5H14.8L17.3 25.2H22.7L25.2 30.5H31.2L20 8ZM20 14.5L21.9 20.8H18.1L20 14.5Z" fill="#FFFFFF"/>
+            <rect width="36" height="36" rx="9" fill="url(#portalAtlasGrad)"/>
+            <path d="M18 7L9 26H14L18 17.5L22 26H27L18 7Z" fill="#FFFFFF"/>
+            <polygon points="18,18 20.8,24.5 15.2,24.5" fill="#38BDF8"/>
           </svg>
           <span class="portal-title-text">Atlas</span>
         </div>
@@ -867,17 +904,12 @@
           <defs>
             <linearGradient id="atlasGrad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
               <stop offset="0%" stop-color="#4F46E5"/>
-              <stop offset="60%" stop-color="#6366F1"/>
-              <stop offset="100%" stop-color="#0EA5E9"/>
-            </linearGradient>
-            <linearGradient id="atlasGlow" x1="0" y1="0" x2="0" y2="32" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.3"/>
-              <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+              <stop offset="100%" stop-color="#06B6D4"/>
             </linearGradient>
           </defs>
-          <rect width="32" height="32" rx="9" fill="url(#atlasGrad)"/>
-          <rect width="32" height="32" rx="9" fill="url(#atlasGlow)"/>
-          <path d="M16 6.5L7 24.5H11.8L13.8 20.2H18.2L20.2 24.5H25L16 6.5ZM16 12L17.5 16.8H14.5L16 12Z" fill="#FFFFFF"/>
+          <rect width="32" height="32" rx="8" fill="url(#atlasGrad)"/>
+          <path d="M16 6L8 23H12.5L16 15.5L19.5 23H24L16 6Z" fill="#FFFFFF"/>
+          <polygon points="16,16 18.5,21.5 13.5,21.5" fill="#38BDF8"/>
         </svg>
         <span class="brand-name">Atlas</span>
       </a>
@@ -918,9 +950,12 @@
       </button>
     </div>
 
-    <div class="sidebar-search" style="padding:0 14px 10px 14px; position:relative;">
-      <input type="text" id="search-threads" placeholder="Search chats...">
-      <i data-lucide="search" style="position:absolute; left:24px; top:9px; width:14px; height:14px; color:#94A3B8;"></i>
+    <div class="sidebar-search">
+      <i data-lucide="search" class="search-input-icon"></i>
+      <input type="text" id="search-threads" placeholder="Search chats..." autocomplete="off">
+      <button type="button" id="btn-clear-search" class="btn-clear-search" title="Clear search" style="display:none;">
+        <i data-lucide="x" style="width:12px;height:12px;"></i>
+      </button>
     </div>
 
     <nav class="threads-container" id="threads-list" aria-label="Chat threads"></nav>
@@ -1047,12 +1082,12 @@
     </div>
     <div class="prompt-library-layout">
       <div class="prompt-library-categories" id="prompt-categories">
-        <button class="prompt-cat-btn active" data-cat="all">All templates</button>
-        <button class="prompt-cat-btn" data-cat="industrial">🔧 Industrial support</button>
-        <button class="prompt-cat-btn" data-cat="math">📊 Calculations</button>
-        <button class="prompt-cat-btn" data-cat="slides">🖥️ Slide decks</button>
-        <button class="prompt-cat-btn" data-cat="poster">🎓 Research posters</button>
-        <button class="prompt-cat-btn" data-cat="general">💻 Coding &amp; general</button>
+        <button class="prompt-cat-btn active" data-cat="all"><i data-lucide="layers" style="width:14px;height:14px;"></i> All playbooks</button>
+        <button class="prompt-cat-btn" data-cat="industrial"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> Industrial safety</button>
+        <button class="prompt-cat-btn" data-cat="math"><i data-lucide="calculator" style="width:14px;height:14px;"></i> Calculations</button>
+        <button class="prompt-cat-btn" data-cat="slides"><i data-lucide="presentation" style="width:14px;height:14px;"></i> Slide decks</button>
+        <button class="prompt-cat-btn" data-cat="poster"><i data-lucide="award" style="width:14px;height:14px;"></i> Research posters</button>
+        <button class="prompt-cat-btn" data-cat="general"><i data-lucide="terminal" style="width:14px;height:14px;"></i> Operations &amp; Code</button>
       </div>
       <div class="prompt-library-list" id="prompt-templates-list"></div>
     </div>
@@ -1202,22 +1237,22 @@
   });
 
   let promptTemplates = [
-    { id:'equip-diagnose', category:'industrial', title:'🔧 Equipment fault diagnosis', desc:'Check state logs, evaluate tolerances, and recommend next steps.', content:'Check the status of [Equipment ID], look up the safety SOP handover logs, and diagnose the fault. The symptom reported is: [Symptom description]. Recommend intermediate mitigation tasks before technician arrival.' },
-    { id:'shift-handover', category:'industrial', title:'📄 Shift handover review', desc:'Draft handover documentation summarizing anomalies and unresolved issues.', content:'Look up the shift handover protocol in the knowledge base and compile a handover log. Current items to note: [Unresolved ticket IDs / issues]. Focus on safety alerts and list priority actions for shift [Shift Name].' },
-    { id:'loto-safety', category:'industrial', title:'🔐 Lockout-tagout (LOTO) audit', desc:'Generate a safety isolation compliance checklist.', content:'Verify safety LOTO procedures for [Equipment Tag]. Check which valves require padlock lockouts, identify the primary electrical breaker location, and outline the energy-zero verification steps.' },
-    { id:'preventive-maintenance', category:'industrial', title:'🛠️ Preventive maintenance guide', desc:'Build a maintenance schedule based on run hours.', content:'Compile a preventive maintenance checklist for [Machine Name] based on its running hours: [Run Hours] and age: [Age in Years]. Highlight safety precautions and required spare parts.' },
-    { id:'calculate-consumption', category:'math', title:'📊 Coolant consumption calculator', desc:'Evaluate total volume usage from flow rate and duration.', content:'Calculate the total volume of coolant used if flow rate is [Flow Rate] L/min for [Duration] hours. Convert the result to gallons and show variables, conversion factor, and calculation details.' },
-    { id:'tolerance-eval', category:'math', title:'📏 Mechanical clearance tolerances', desc:'Compare measured clearances against SOP standards.', content:'Evaluate if a measured clearance of [Measured Value] mm falls within the standard specification limits of [Min SOP Limit] mm to [Max SOP Limit] mm. Compute deviation and recommend if immediate lockout/tagout (LOTO) is required.' },
-    { id:'exchanger-efficiency', category:'math', title:'🌡️ Heat exchanger efficiency', desc:'Evaluate heat transfer rates and thermal efficiency.', content:'Compute the thermal efficiency of a shell-and-tube heat exchanger. Hot fluid inlet is [Hot Inlet Temp]°C and outlet is [Hot Outlet Temp]°C. Cold fluid inlet is [Cold Inlet Temp]°C and outlet is [Cold Outlet Temp]°C. Flow rate is [Flow Rate] kg/s.' },
-    { id:'safety-slides', category:'slides', title:'🖥️ Industrial safety slide deck', desc:'Create an interactive presentation for safety briefings.', content:'Generate a 4-slide presentation summarizing industrial safety protocols for [Facility Name]. Focus on PPE compliance, emergency shut-off points, hazard identification, and LOTO procedure.' },
-    { id:'shift-handover-slides', category:'slides', title:'🖥️ Operations handover slides', desc:'Format daily crew change logs into visual slides.', content:'Generate a 3-slide presentation for the operations team handover of Shift [Shift Number]. Include slide 1: Safety Summary, slide 2: Ongoing Critical Alarms, and slide 3: Tasks Pending Next Shift.' },
-    { id:'concept-slides', category:'slides', title:'🖥️ Concept explanation slides', desc:'Generate an interactive technical pitch deck.', content:'Generate a 5-slide presentation introducing the concept of: [Technical Concept]. Cover historical context, core mechanics, mathematical formulation, practical examples, and future trends.' },
-    { id:'paper-poster', category:'poster', title:'🎓 Academic paper poster layout', desc:'Generate a 3-column conference layout summarizing a paper.', content:'Analyze the research paper on [Research Topic] and layout a scientific research poster. Use the format with sections: Abstract, Introduction, Experimental Setup, Key Findings, and References.' },
-    { id:'material-science-poster', category:'poster', title:'🎓 Material science poster', desc:'Formulate stress-testing and microstructural findings.', content:'Create a 3-column academic conference poster summarizing research on: [Material Name] properties under high stress. Structure sections: Abstract, Stress Testing Methodology, Microstructure Analysis, and References.' },
-    { id:'reactor-optimization-poster', category:'poster', title:'🎓 Design optimization poster', desc:'Create a poster representing a design optimization study.', content:'Create a conference poster representing a design optimization study for a [Reactor Type] reactor. Include domain="Chemical Engineering", authors="Process Design Group". Specify sections: Abstract, Mathematical Model, Parametric Analysis, and References.' },
-    { id:'fastapi-resource', category:'general', title:'💻 FastAPI database boilerplate', desc:'Generate a complete FastAPI resource with database connection.', content:'Write a complete Python script using FastAPI, SQLModel/SQLite, and Pydantic to create, read, update, and delete the resource: [Resource Name]. Make sure endpoints are secure and include validation schemas.' },
-    { id:'incident-report', category:'general', title:'📝 Professional incident report', desc:'Draft a formal incident report with timeline and impact.', content:'Draft a professional incident report describing a [Incident Type] event occurred on [Incident Date]. Location: [Plant Area]. Immediate actions taken: [Action items]. Conclude with a recommendation for root cause analysis.' },
-    { id:'sql-migration', category:'general', title:'🗄️ SQL schema migration script', desc:'Generate a migration SQL script with index preservation.', content:'Write a production-ready SQL script to migrate database [Old Table Name] to [New Table Name], ensuring data preservation, indexing, and foreign key integrity. Include rollback commands.' }
+    { id:'equip-diagnose', category:'industrial', title:'Equipment fault diagnosis', desc:'Check state logs, evaluate tolerances, and recommend next steps.', content:'Check the status of [Equipment ID], look up the safety SOP handover logs, and diagnose the fault. The symptom reported is: [Symptom description]. Recommend intermediate mitigation tasks before technician arrival.' },
+    { id:'shift-handover', category:'industrial', title:'Shift handover review', desc:'Draft handover documentation summarizing anomalies and unresolved issues.', content:'Look up the shift handover protocol in the knowledge base and compile a handover log. Current items to note: [Unresolved ticket IDs / issues]. Focus on safety alerts and list priority actions for shift [Shift Name].' },
+    { id:'loto-safety', category:'industrial', title:'Lockout-tagout (LOTO) audit', desc:'Generate a safety isolation compliance checklist.', content:'Verify safety LOTO procedures for [Equipment Tag]. Check which valves require padlock lockouts, identify the primary electrical breaker location, and outline the energy-zero verification steps.' },
+    { id:'preventive-maintenance', category:'industrial', title:'Preventive maintenance guide', desc:'Build a maintenance schedule based on run hours.', content:'Compile a preventive maintenance checklist for [Machine Name] based on its running hours: [Run Hours] and age: [Age in Years]. Highlight safety precautions and required spare parts.' },
+    { id:'calculate-consumption', category:'math', title:'Coolant consumption calculator', desc:'Evaluate total volume usage from flow rate and duration.', content:'Calculate the total volume of coolant used if flow rate is [Flow Rate] L/min for [Duration] hours. Convert the result to gallons and show variables, conversion factor, and calculation details.' },
+    { id:'tolerance-eval', category:'math', title:'Mechanical clearance tolerances', desc:'Compare measured clearances against SOP standards.', content:'Evaluate if a measured clearance of [Measured Value] mm falls within the standard specification limits of [Min SOP Limit] mm to [Max SOP Limit] mm. Compute deviation and recommend if immediate lockout/tagout (LOTO) is required.' },
+    { id:'exchanger-efficiency', category:'math', title:'Heat exchanger efficiency', desc:'Evaluate heat transfer rates and thermal efficiency.', content:'Compute the thermal efficiency of a shell-and-tube heat exchanger. Hot fluid inlet is [Hot Inlet Temp]°C and outlet is [Hot Outlet Temp]°C. Cold fluid inlet is [Cold Inlet Temp]°C and outlet is [Cold Outlet Temp]°C. Flow rate is [Flow Rate] kg/s.' },
+    { id:'safety-slides', category:'slides', title:'Industrial safety slide deck', desc:'Create an interactive presentation for safety briefings.', content:'Generate a 4-slide presentation summarizing industrial safety protocols for [Facility Name]. Focus on PPE compliance, emergency shut-off points, hazard identification, and LOTO procedure.' },
+    { id:'shift-handover-slides', category:'slides', title:'Operations handover slides', desc:'Format daily crew change logs into visual slides.', content:'Generate a 3-slide presentation for the operations team handover of Shift [Shift Number]. Include slide 1: Safety Summary, slide 2: Ongoing Critical Alarms, and slide 3: Tasks Pending Next Shift.' },
+    { id:'concept-slides', category:'slides', title:'Concept explanation slides', desc:'Generate an interactive technical pitch deck.', content:'Generate a 5-slide presentation introducing the concept of: [Technical Concept]. Cover historical context, core mechanics, mathematical formulation, practical examples, and future trends.' },
+    { id:'paper-poster', category:'poster', title:'Academic paper poster layout', desc:'Generate a 3-column conference layout summarizing a paper.', content:'Analyze the research paper on [Research Topic] and layout a scientific research poster. Use the format with sections: Abstract, Introduction, Experimental Setup, Key Findings, and References.' },
+    { id:'material-science-poster', category:'poster', title:'Material science poster', desc:'Formulate stress-testing and microstructural findings.', content:'Create a 3-column academic conference poster summarizing research on: [Material Name] properties under high stress. Structure sections: Abstract, Stress Testing Methodology, Microstructure Analysis, and References.' },
+    { id:'reactor-optimization-poster', category:'poster', title:'Design optimization poster', desc:'Create a poster representing a design optimization study.', content:'Create a conference poster representing a design optimization study for a [Reactor Type] reactor. Include domain="Chemical Engineering", authors="Process Design Group". Specify sections: Abstract, Mathematical Model, Parametric Analysis, and References.' },
+    { id:'fastapi-resource', category:'general', title:'FastAPI database boilerplate', desc:'Generate a complete FastAPI resource with database connection.', content:'Write a complete Python script using FastAPI, SQLModel/SQLite, and Pydantic to create, read, update, and delete the resource: [Resource Name]. Make sure endpoints are secure and include validation schemas.' },
+    { id:'incident-report', category:'general', title:'Professional incident report', desc:'Draft a formal incident report with timeline and impact.', content:'Draft a professional incident report describing a [Incident Type] event occurred on [Incident Date]. Location: [Plant Area]. Immediate actions taken: [Action items]. Conclude with a recommendation for root cause analysis.' },
+    { id:'sql-migration', category:'general', title:'SQL schema migration script', desc:'Generate a migration SQL script with index preservation.', content:'Write a production-ready SQL script to migrate database [Old Table Name] to [New Table Name], ensuring data preservation, indexing, and foreign key integrity. Include rollback commands.' }
   ];
 
   let selectedTemplate = null;
@@ -1341,12 +1376,32 @@
 
     // Search & trash toggle
     const searchThreads = document.getElementById('search-threads');
+    const btnClearSearch = document.getElementById('btn-clear-search');
     const btnToggleTrash = document.getElementById('btn-toggle-trash');
 
     if (searchThreads) {
       searchThreads.addEventListener('input', (e) => {
         searchQuery = e.target.value;
-        refreshThreadsList();
+        if (btnClearSearch) btnClearSearch.style.display = searchQuery ? 'flex' : 'none';
+        filterAndRenderThreads();
+      });
+      searchThreads.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          searchThreads.value = '';
+          searchQuery = '';
+          if (btnClearSearch) btnClearSearch.style.display = 'none';
+          filterAndRenderThreads();
+        }
+      });
+    }
+
+    if (btnClearSearch) {
+      btnClearSearch.addEventListener('click', () => {
+        searchThreads.value = '';
+        searchQuery = '';
+        btnClearSearch.style.display = 'none';
+        filterAndRenderThreads();
+        searchThreads.focus();
       });
     }
 
@@ -1504,7 +1559,9 @@
     currentUsername = '';
   }
 
-  function showChatDashboard(username) {
+  let allThreads = [];
+
+  async function showChatDashboard(username) {
     currentUsername = username;
     portalView.classList.add('hidden');
     dashboardView.classList.remove('hidden');
@@ -1515,46 +1572,65 @@
     authUsernameInput.value = '';
     authPasswordInput.value = '';
 
-    refreshThreadsList().then(() => { selectThread(activeThreadId); });
+    await refreshThreadsList();
+
+    const savedThread = localStorage.getItem('active-thread-id');
+    if (savedThread && allThreads.some(t => t.thread_id === savedThread)) {
+      await selectThread(savedThread);
+    } else if (savedThread && savedThread.startsWith('chat-')) {
+      await selectThread(savedThread);
+    } else if (allThreads.length > 0) {
+      await selectThread(allThreads[0].thread_id);
+    } else {
+      await createNewChat();
+    }
+    lucide.createIcons();
   }
 
   async function refreshThreadsList() {
     try {
       let url = '/threads?';
       if (showDeletedOnly) {
-        url += 'include_deleted=true&';
-      }
-      if (searchQuery) {
-        url += `q=${encodeURIComponent(searchQuery)}&`;
+        url += 'include_deleted=true';
       }
       const res = await fetch(url);
       const data = await res.json();
-      threads = data.threads || [];
-
+      allThreads = data.threads || [];
       if (showDeletedOnly) {
-        threads = threads.filter(t => t.deleted_at);
+        allThreads = allThreads.filter(t => t.deleted_at);
       }
+      filterAndRenderThreads();
+    } catch (err) { console.error('Failed to refresh threads', err); }
+  }
 
-      if (threads.length === 0) {
-        activeThreadId = 'chat-' + Date.now();
-      } else if (!threads.find(t => t.thread_id === activeThreadId)) {
-        activeThreadId = threads[0].thread_id;
-      }
-      renderThreads();
-    } catch (err) { console.error(err); }
+  function filterAndRenderThreads() {
+    const q = (searchQuery || '').trim().toLowerCase();
+    threads = q ? allThreads.filter(t => (t.title || '').toLowerCase().includes(q) || (t.thread_id || '').toLowerCase().includes(q)) : [...allThreads];
+    renderThreads();
   }
 
   function renderThreads() {
     threadsList.innerHTML = '';
 
+    // If search active and nothing matched, show friendly state
+    if (searchQuery && threads.length === 0) {
+      const emptySearch = document.createElement('div');
+      emptySearch.className = 'empty-search-state';
+      emptySearch.style = 'padding:24px 12px;text-align:center;color:var(--text-muted);font-size:.8rem;display:flex;flex-direction:column;align-items:center;gap:6px;';
+      emptySearch.innerHTML = `<i data-lucide="search-x" style="width:20px;height:20px;opacity:0.5;"></i><span>No matching chats</span>`;
+      threadsList.appendChild(emptySearch);
+      lucide.createIcons();
+      return;
+    }
+
     // If active thread is a brand new chat not yet in backend list, render it at top
-    if (activeThreadId && !threads.find(t => t.thread_id === activeThreadId)) {
+    if (activeThreadId && !allThreads.some(t => t.thread_id === activeThreadId) && !searchQuery) {
       const activeNewItem = document.createElement('div');
       activeNewItem.className = 'thread-item active';
       activeNewItem.dataset.id = activeThreadId;
       activeNewItem.innerHTML = `
         <div class="thread-info">
-          <i data-lucide="message-square" class="thread-icon" style="width:16px;height:16px;color:var(--accent-primary);"></i>
+          <i data-lucide="message-square-plus" class="thread-icon" style="width:16px;height:16px;color:var(--accent-primary);"></i>
           <span class="thread-title-text" style="font-weight:600;color:var(--text-main);">New chat</span>
         </div>
       `;
@@ -1697,12 +1773,24 @@
     activeThreadId = threadId;
     localStorage.setItem('active-thread-id', threadId);
 
+  async function selectThread(threadId) {
+    stopReadAloud();
+    closeCanvasPanel();
+    activeThreadId = threadId;
+    localStorage.setItem('active-thread-id', threadId);
+
     document.querySelectorAll('.thread-item').forEach(item => {
       item.classList.toggle('active', item.dataset.id === threadId);
     });
 
-    const threadObj = threads.find(t => t.thread_id === threadId);
+    const threadObj = allThreads.find(t => t.thread_id === threadId);
     currentThreadTitleText.textContent = threadObj ? threadObj.title : 'New chat';
+
+    if (threadId.startsWith('chat-') && !allThreads.some(t => t.thread_id === threadId)) {
+      clearMessageViewport();
+      showWelcomeScreen();
+      return;
+    }
 
     await loadThreadHistory(threadId);
   }
@@ -1710,6 +1798,7 @@
   async function createNewChat() {
     stopReadAloud();
     closeCanvasPanel();
+    isThinking = false;
     const newId = 'chat-' + Date.now();
     activeThreadId = newId;
     localStorage.setItem('active-thread-id', newId);
@@ -1718,7 +1807,7 @@
     if (valIntent) valIntent.textContent = 'n/a';
     if (valEscalation) valEscalation.textContent = 'false';
 
-    renderThreads();
+    filterAndRenderThreads();
     clearMessageViewport();
     showWelcomeScreen();
 
@@ -1747,17 +1836,12 @@
         <defs>
           <linearGradient id="welcomeAtlasGrad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#4F46E5"/>
-            <stop offset="60%" stop-color="#6366F1"/>
-            <stop offset="100%" stop-color="#0EA5E9"/>
-          </linearGradient>
-          <linearGradient id="welcomeGlow" x1="0" y1="0" x2="0" y2="48" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.3"/>
-            <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#06B6D4"/>
           </linearGradient>
         </defs>
-        <rect width="48" height="48" rx="14" fill="url(#welcomeAtlasGrad)"/>
-        <rect width="48" height="48" rx="14" fill="url(#welcomeGlow)"/>
-        <path d="M24 9.5L10.5 36.5H17.7L20.7 30H27.3L30.3 36.5H37.5L24 9.5ZM24 17.5L26.3 25H21.7L24 17.5Z" fill="#FFFFFF"/>
+        <rect width="48" height="48" rx="12" fill="url(#welcomeAtlasGrad)"/>
+        <path d="M24 9L12 34.5H18.7L24 23.2L29.3 34.5H36L24 9Z" fill="#FFFFFF"/>
+        <polygon points="24,24 27.8,32.2 20.2,32.2" fill="#38BDF8"/>
       </svg>
       <h1 class="welcome-title">How can Atlas help you today?</h1>
       <p class="welcome-subtitle">I'm an operations copilot and research assistant. Pick a starter module below, or just start typing.</p>
@@ -2694,9 +2778,9 @@
 
     <!-- Tabs -->
     <div class="mcp-modal-tabs">
-      <button class="mcp-tab active" data-tab="registry">🔌 Marketplace</button>
-      <button class="mcp-tab" data-tab="active">✅ Connected <span id="mcp-active-count-tab" style="background:rgba(61,122,85,0.15);color:var(--success);border-radius:99px;padding:1px 7px;font-size:.7rem;margin-left:4px;">0</span></button>
-      <button class="mcp-tab" data-tab="tools">🛠️ Tools <span id="mcp-tools-count-tab" style="background:rgba(99,102,241,0.12);color:#6366f1;border-radius:99px;padding:1px 7px;font-size:.7rem;margin-left:4px;">0</span></button>
+      <button class="mcp-tab active" data-tab="registry"><i data-lucide="layout-grid" style="width:14px;height:14px;"></i> Marketplace</button>
+      <button class="mcp-tab" data-tab="active"><i data-lucide="check-circle-2" style="width:14px;height:14px;"></i> Connected <span id="mcp-active-count-tab" style="background:rgba(16,185,129,0.12);color:var(--success);border-radius:99px;padding:1px 7px;font-size:.7rem;margin-left:4px;">0</span></button>
+      <button class="mcp-tab" data-tab="tools"><i data-lucide="wrench" style="width:14px;height:14px;"></i> Tools <span id="mcp-tools-count-tab" style="background:rgba(99,102,241,0.12);color:#6366f1;border-radius:99px;padding:1px 7px;font-size:.7rem;margin-left:4px;">0</span></button>
     </div>
 
     <!-- Registry tab -->
@@ -2709,7 +2793,7 @@
           <button class="mcp-cat-btn active" data-cat="all">All</button>
         </div>
         <div class="mcp-server-grid" id="mcp-server-grid">
-          <div class="mcp-empty-state"><div class="mcp-empty-icon">⏳</div><span>Loading marketplace…</span></div>
+          <div class="mcp-empty-state"><i data-lucide="loader" style="width:28px;height:28px;animation:spin 1s linear infinite;color:#6366f1;"></i><span>Loading marketplace…</span></div>
         </div>
       </div>
     </div>
@@ -2723,7 +2807,7 @@
         </button>
       </div>
       <div class="mcp-active-list" id="mcp-active-list">
-        <div class="mcp-empty-state"><div class="mcp-empty-icon">🔌</div><span>No servers connected yet. Browse the Marketplace tab to get started.</span></div>
+        <div class="mcp-empty-state"><i data-lucide="network" style="width:32px;height:32px;opacity:0.5;"></i><span>No servers connected yet. Browse the Marketplace tab to get started.</span></div>
       </div>
     </div>
 
@@ -2731,7 +2815,7 @@
     <div class="mcp-tab-panel" id="mcp-panel-tools">
       <div style="padding:16px 24px 0;font-size:.82rem;color:var(--text-muted);">All tools available to the AI from connected MCP servers</div>
       <div class="mcp-active-list" id="mcp-tools-list" style="flex-direction:row;flex-wrap:wrap;gap:8px;align-content:start;">
-        <div class="mcp-empty-state" style="width:100%;"><div class="mcp-empty-icon">🛠️</div><span>No MCP tools loaded yet.</span></div>
+        <div class="mcp-empty-state" style="width:100%;"><i data-lucide="wrench" style="width:32px;height:32px;opacity:0.5;"></i><span>No MCP tools loaded yet.</span></div>
       </div>
     </div>
 
@@ -2964,7 +3048,8 @@
     );
 
     if (!filtered.length) {
-      grid.innerHTML = `<div class="mcp-empty-state"><div class="mcp-empty-icon">🔍</div><span>No integrations match your search.</span></div>`;
+      grid.innerHTML = `<div class="mcp-empty-state"><i data-lucide="search" style="width:28px;height:28px;opacity:0.4;"></i><span>No integrations match your search.</span></div>`;
+      lucide.createIcons();
       return;
     }
 
@@ -2996,8 +3081,8 @@
     const hasParams = srv.config_params && srv.config_params.length > 0;
 
     const authHtml = hasAuth
-      ? `<div class="mcp-card-auth">🔑 Needs: ${srv.auth_env.slice(0,2).join(', ')}${srv.auth_env.length>2?' +'+( srv.auth_env.length-2)+' more':''}</div>`
-      : `<div class="mcp-card-auth no-auth">✅ No auth required</div>`;
+      ? `<div class="mcp-card-auth"><span style="font-weight:600;">Auth:</span> ${srv.auth_env.slice(0,2).join(', ')}${srv.auth_env.length>2?' +'+( srv.auth_env.length-2)+' more':''}</div>`
+      : `<div class="mcp-card-auth no-auth"><span style="color:var(--success);font-weight:600;">Open access</span></div>`;
 
     const paramsHtml = (!isConn && hasParams)
       ? `<div class="mcp-params-form">${srv.config_params.map(p =>
@@ -3010,7 +3095,7 @@
     return `
     <div class="mcp-server-card${isConn?' connected':''}" id="mcp-card-${srv.id}">
       <div class="mcp-card-top">
-        <div class="mcp-card-icon">${srv.icon || '🔌'}</div>
+        <div class="mcp-card-icon" style="background:#EEF2FF;color:#4F46E5;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;">${(srv.name||'MCP').slice(0,2).toUpperCase()}</div>
         <div class="mcp-card-meta">
           <div class="mcp-card-name">${srv.name}</div>
           <div class="mcp-card-category">${srv.category}</div>
@@ -3021,8 +3106,8 @@
       ${paramsHtml}
       <div class="mcp-card-footer">
         ${isConn
-          ? `<div class="mcp-connected-badge">● Connected</div>`
-          : `<a href="${srv.docs_url}" target="_blank" style="font-size:.72rem;color:var(--text-muted);text-decoration:none;" title="View docs">Docs ↗</a>`
+          ? `<div class="mcp-connected-badge">Connected</div>`
+          : `<a href="${srv.docs_url}" target="_blank" style="font-size:.72rem;color:var(--text-muted);text-decoration:none;" title="View docs">Docs &rarr;</a>`
         }
         <button class="btn-mcp-connect${isConn?' disconnect':''}" id="mcp-btn-${srv.id}">
           ${isConn ? 'Disconnect' : 'Connect'}
