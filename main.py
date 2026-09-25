@@ -471,13 +471,21 @@ def extract_text_from_pdf(filepath: str) -> str:
     try:
         import pypdf
         reader = pypdf.PdfReader(filepath)
-        text = ""
-        max_pages = min(len(reader.pages), 15)
+        total_pages = len(reader.pages)
+        max_pages = min(total_pages, 20)
+        pages_text = []
+        total_extracted_len = 0
         for i in range(max_pages):
             page_text = reader.pages[i].extract_text()
-            if page_text:
-                text += f"\n--- Page {i + 1} ---\n{page_text}"
-        return text.strip() or "[Empty PDF content]"
+            if page_text and page_text.strip():
+                clean_page = page_text.strip()
+                pages_text.append(f"--- Page {i + 1} of {total_pages} ---\n{clean_page}")
+                total_extracted_len += len(clean_page)
+                if total_extracted_len > 14000:
+                    pages_text.append(f"... [Document has {total_pages} total pages. First {i + 1} pages extracted to fit context window.]")
+                    break
+        combined = "\n\n".join(pages_text)
+        return combined.strip() or "[PDF document contains scanned graphics or no extractable text layer]"
     except Exception as e:
         logger.error(f"Failed to parse PDF using pypdf: {e}")
         try:
