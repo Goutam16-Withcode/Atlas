@@ -551,6 +551,31 @@
   .attachment-preview-card span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
   .btn-remove-attachment{background:#FEE2E2;border:none;color:var(--danger);border-radius:50%;cursor:pointer;width:16px;height:16px;display:flex;align-items:center;justify-content:center;}
 
+  /* Uploaded Media & Attachment Renders */
+  .attachment-render{display:block;margin:8px 0;}
+  .attachment-render.image{
+    max-width:100%;width:auto;max-height:280px;object-fit:cover;
+    border-radius:var(--radius-md);border:1px solid rgba(0,0,0,0.08);
+    box-shadow:0 4px 14px rgba(15,23,42,0.08);cursor:pointer;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .attachment-render.image:hover{
+    transform:scale(1.02);
+    box-shadow:0 8px 24px rgba(15,23,42,0.14);
+  }
+  .attachment-render.audio,.attachment-render.video{max-width:100%;width:360px;border-radius:var(--radius-sm);margin:8px 0;}
+  .attachment-render.file-link{
+    display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:#F8FAFC;
+    border:1px solid #E2E8F0;border-radius:var(--radius-sm);color:var(--accent-primary);
+    text-decoration:none;font-size:.86rem;font-weight:500;margin:6px 0;transition:background .15s ease;
+  }
+  .attachment-render.file-link:hover{background:#EEF2FF;}
+  .message-content img{
+    max-width:100%;max-height:360px;height:auto;object-fit:contain;
+    border-radius:var(--radius-md);border:1px solid #E2E8F0;margin:10px 0;
+    display:block;box-shadow:0 2px 10px rgba(15,23,42,0.06);
+  }
+
   .composer-input-row{display:flex;align-items:center;gap:8px;width:100%;}
   .btn-attachment-upload,.btn-voice-input{
     background:transparent;border:none;color:#94A3B8;cursor:pointer;width:34px;height:34px;border-radius:50%;
@@ -2563,13 +2588,23 @@
     formData.append('file', file);
 
     try {
-      const res = await fetch('/upload', { method: 'POST', body: formData });
+      let res = await fetch('/upload', { method: 'POST', body: formData, credentials: 'include' });
+      if (res.status === 401) {
+        try {
+          await fetch('/guest', { method: 'POST', credentials: 'include' });
+          res = await fetch('/upload', { method: 'POST', body: formData, credentials: 'include' });
+        } catch (authErr) {
+          console.warn('Guest auto-login failed:', authErr);
+        }
+      }
+
       if (res.ok) {
         const data = await res.json();
         attachmentsList.push(data);
         renderAttachmentPreviewBar();
       } else {
-        alert('Upload failed.');
+        const errJson = await res.json().catch(() => ({}));
+        alert(errJson.detail || 'Upload failed.');
       }
     } catch (err) {
       console.error(err);
@@ -2737,14 +2772,38 @@
 
     currentAttachments.forEach(att => {
       let renderNode = null;
-      if (att.type === 'image') { renderNode = document.createElement('img'); renderNode.src = att.url; renderNode.className = 'attachment-render image'; }
-      else if (att.type === 'audio') { renderNode = document.createElement('audio'); renderNode.src = att.url; renderNode.controls = true; renderNode.className = 'attachment-render audio'; }
-      else if (att.type === 'video') { renderNode = document.createElement('video'); renderNode.src = att.url; renderNode.controls = true; renderNode.className = 'attachment-render video'; }
-      else {
+      if (att.type === 'image') {
+        renderNode = document.createElement('img');
+        renderNode.src = att.url;
+        renderNode.className = 'attachment-render image';
+        renderNode.alt = att.filename || 'Uploaded image';
+        renderNode.title = 'Click to open in Canvas panel';
+        renderNode.addEventListener('click', () => {
+          openCanvasPanel(
+            `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;">
+               <img src="${att.url}" alt="${escapeHTML(att.filename || 'Uploaded image')}" style="max-width:100%;max-height:75vh;object-fit:contain;border-radius:10px;box-shadow:0 10px 30px rgba(15,23,42,0.12);" />
+               <a href="${att.url}" download="${escapeHTML(att.filename || 'image')}" class="btn-open-artifact" style="text-decoration:none;">Download Original</a>
+             </div>`,
+            att.filename || 'Uploaded Image',
+            true
+          );
+        });
+      } else if (att.type === 'audio') {
+        renderNode = document.createElement('audio');
+        renderNode.src = att.url;
+        renderNode.controls = true;
+        renderNode.className = 'attachment-render audio';
+      } else if (att.type === 'video') {
+        renderNode = document.createElement('video');
+        renderNode.src = att.url;
+        renderNode.controls = true;
+        renderNode.className = 'attachment-render video';
+      } else {
         renderNode = document.createElement('a');
-        renderNode.href = att.url; renderNode.target = '_blank';
-        renderNode.textContent = `📎 Download ${att.filename || 'File'}`;
-        renderNode.style.display = 'block'; renderNode.style.margin = '8px 0';
+        renderNode.href = att.url;
+        renderNode.target = '_blank';
+        renderNode.textContent = `📎 ${att.filename || 'Download File'}`;
+        renderNode.className = 'attachment-render file-link';
       }
       userBubble.insertBefore(renderNode, userBubble.lastChild);
     });
