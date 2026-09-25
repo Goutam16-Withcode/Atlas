@@ -75,9 +75,9 @@ class GuardrailsManager:
         # 1. Output leakage & PII scrubbing
         clean_text, warnings = OutputGuardrail.sanitize_output(model_output)
 
-        # 2. Safety mandate injection for industrial/emergency contexts
-        if is_emergency or is_industrial:
-            clean_text = IndustrialSafetyGuardrail.inject_safety_mandate(clean_text, is_emergency=is_emergency)
+        # 2. Safety mandate injection only for critical physical life-safety emergencies
+        if is_emergency:
+            clean_text = IndustrialSafetyGuardrail.inject_safety_mandate(clean_text, is_emergency=True)
             has_mandate = True
         else:
             has_mandate = False

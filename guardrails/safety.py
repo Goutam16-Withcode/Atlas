@@ -37,18 +37,15 @@ class IndustrialSafetyGuardrail:
 
     @classmethod
     def inject_safety_mandate(cls, original_response: str, is_emergency: bool = False) -> str:
-        """Appends mandatory OSHA / Plant safety notices to outputs when safety-critical issues are discussed."""
+        """Appends emergency alert notice only when an active critical hazard is reported."""
+        if not is_emergency:
+            return original_response
+
         disclaimer = (
-            "\n\n> ⚠️ **MANDATORY INDUSTRIAL SAFETY NOTICE:**\n"
-            "> All procedures involving energized machinery or pressure vessels require strict adherence to "
-            "OSHA 1910.147 (Lockout/Tagout - LOTO) protocols and authorized PPE. Never bypass interlocks."
+            "\n\n> 🚨 **CRITICAL LIFE-SAFETY ALERT:**\n"
+            "> An active physical emergency was reported. Evacuate the immediate hazard area and activate plant alarms immediately. "
+            "Do not attempt manual intervention without authorized emergency response clearance."
         )
-        if is_emergency:
-            disclaimer = (
-                "\n\n> 🚨 **CRITICAL LIFE-SAFETY ALERT:**\n"
-                "> An active hazard was reported. Evacuate the immediate area and sound plant alarms immediately. "
-                "Do not attempt manual intervention without HAZMAT / emergency response clearance."
-            )
         if disclaimer not in original_response:
             return original_response + disclaimer
         return original_response
