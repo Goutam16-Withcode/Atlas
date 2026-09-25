@@ -1773,12 +1773,6 @@
     activeThreadId = threadId;
     localStorage.setItem('active-thread-id', threadId);
 
-  async function selectThread(threadId) {
-    stopReadAloud();
-    closeCanvasPanel();
-    activeThreadId = threadId;
-    localStorage.setItem('active-thread-id', threadId);
-
     document.querySelectorAll('.thread-item').forEach(item => {
       item.classList.toggle('active', item.dataset.id === threadId);
     });
