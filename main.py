@@ -955,9 +955,6 @@ def upload_file(
     except Exception as e:
         logger.error(f"Failed to save upload: {e}")
         raise HTTPException(status_code=500, detail="Failed to write file to storage")
-    except Exception as e:
-        logger.error(f"Failed to save upload: {e}")
-        raise HTTPException(status_code=500, detail="Failed to write file to storage")
 
 
 # --------------------------------------------------------------------------- #
