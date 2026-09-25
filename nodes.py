@@ -83,13 +83,26 @@ def get_llm_instance(model_type="primary", bind_tools=True):
     keys = settings.groq_api_keys
     api_key = keys[_key_index % len(keys)] if keys else None
 
-    if model_type == "primary":
-        m = settings.MODEL_NAME
-    elif model_type == "vision":
-        m = settings.MODEL_NAME
-    else:
-        m = settings.MODEL_NAME
+    if model_type == "vision":
+        # Groq models are text-only; route vision payloads through OpenRouter Qwen-2-VL
+        openrouter_key = getattr(settings, "OPENROUTER_API_KEY", "")
+        if openrouter_key:
+            try:
+                from langchain_openai import ChatOpenAI
+                base_llm = ChatOpenAI(
+                    model="qwen/qwen-2-vl-72b-instruct",
+                    api_key=openrouter_key,
+                    base_url=getattr(settings, "OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
+                    temperature=settings.TEMPERATURE,
+                    max_tokens=2048,
+                )
+                if bind_tools:
+                    return base_llm.bind_tools(_active_tools)
+                return base_llm
+            except Exception as e:
+                logger.warning(f"OpenRouter vision initialization failed, falling back to primary Groq: {e}")
 
+    m = settings.MODEL_NAME
     base_llm = ChatGroq(
         model=m,
         temperature=settings.TEMPERATURE,
@@ -103,7 +116,9 @@ def get_llm_instance(model_type="primary", bind_tools=True):
 # ToolNode is rebuilt after MCP init so it knows about all tools
 tool_node = ToolNode(_active_tools)
 
-SYSTEM_PROMPT = """You are Atlas, an operations assistant supporting plant/industrial teams as well as general technical and knowledge work. You have access to tools for live equipment data, calculations, a knowledge base, image generation, video generation, support ticketing, real-time web search, stock market price lookups, weather forecasts, read-only SQL database querying, simulated email sending, calendar scheduling, task management, safe Python code execution, sending Slack messages, fetching GitHub issues/PRs, and comparing document similarity. Use them — never guess.
+SYSTEM_PROMPT = """You are Atlas, an operations assistant supporting plant/industrial teams as well as general technical and knowledge work. You have access to tools for live equipment data, calculations, a knowledge base, image generation, video generation, support ticketing, real-time web search, fetching and reading public webpage content from URLs (fetch_webpage_content), stock market price lookups, weather forecasts, read-only SQL database querying, simulated email sending, calendar scheduling, task management, safe Python code execution, sending Slack messages, fetching GitHub issues/PRs, and comparing document similarity. Use them — never guess.
+
+Whenever a user includes a URL or webpage link (http:// or https://) in their message, you MUST use the fetch_webpage_content tool to extract and read its live text content before answering.
 
 ═══════════════════════════════════════
 TASK CLASSIFICATION
@@ -269,7 +284,11 @@ STYLE
 # ---------------------------------------------------------------------
 def classify_intent(state: ChatState) -> dict:
     last_msg = state["messages"][-1]
-    text = last_msg.content.lower() if isinstance(last_msg.content, str) else ""
+    if isinstance(last_msg.content, list):
+        texts = [part.get("text", "") for part in last_msg.content if isinstance(part, dict) and part.get("type") == "text"]
+        text = " ".join(texts).lower()
+    else:
+        text = last_msg.content.lower() if isinstance(last_msg.content, str) else ""
 
     if any(kw in text for kw in settings.ESCALATE_ON_KEYWORDS):
         intent = "escalation"
@@ -296,12 +315,18 @@ def compress_history(state: ChatState) -> dict:
     to_summarize = messages[:-keep_n]
     existing_summary = state.get("summary") or ""
 
+    def clean_msg_for_summary(m):
+        if isinstance(m.content, list):
+            texts = [part.get("text", "") for part in m.content if isinstance(part, dict) and part.get("type") == "text"]
+            return " ".join(texts) or "[User attached an image/media]"
+        return str(m.content)
+
     summary_prompt = [
         SystemMessage(content="Summarize the following support conversation concisely, "
                                "preserving equipment names, ticket IDs, generated asset URLs, and unresolved issues."),
         HumanMessage(content=f"Existing summary: {existing_summary}\n\n"
                               f"New messages to fold in:\n" +
-                              "\n".join(f"{m.type}: {m.content}" for m in to_summarize)),
+                              "\n".join(f"{m.type}: {clean_msg_for_summary(m)}" for m in to_summarize)),
     ]
     result = get_llm_instance("primary", bind_tools=False).invoke(summary_prompt)
     logger.info("History compressed into rolling summary.")

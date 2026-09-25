@@ -681,6 +681,48 @@ def compare_documents_similarity(doc_a_path: str, doc_b_path: str) -> str:
         return f"Comparison failed: {str(e)}"
 
 
+@tool
+def fetch_webpage_content(url: str) -> str:
+    """Fetch, extract, and read the clean text content from any public website URL or webpage link.
+    Use this whenever a user provides a web link or URL and asks questions about it,
+    asks for a summary, seeks specific information from it, or asks you to analyze the page."""
+    import html as html_lib
+    clean_url = url.strip().strip("<>\"'")
+    if not clean_url.startswith("http://") and not clean_url.startswith("https://"):
+        clean_url = "https://" + clean_url
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+    try:
+        resp = requests.get(clean_url, headers=headers, timeout=15)
+        if resp.status_code != 200:
+            return f"Error: Webpage returned HTTP status {resp.status_code} ({resp.reason})"
+
+        html_text = resp.text
+        # Strip script, style, noscript, svg, head, nav, footer
+        cleaned = re.sub(r"<(script|style|noscript|svg|head|nav|footer)[^>]*>.*?</\1>", " ", html_text, flags=re.DOTALL | re.IGNORECASE)
+        # Strip remaining HTML tags
+        text = re.sub(r"<[^>]+>", " ", cleaned)
+        # Unescape entities
+        text = html_lib.unescape(text)
+        # Clean lines
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        full_text = "\n".join(lines)
+
+        if not full_text:
+            return f"Webpage at {clean_url} was reached, but no readable text content could be extracted."
+
+        if len(full_text) > 8000:
+            full_text = full_text[:8000] + "\n\n... [Content truncated for length]"
+
+        return f"Content extracted from {clean_url}:\n\n{full_text}"
+    except Exception as e:
+        return f"Failed to fetch webpage content from {clean_url}: {str(e)}"
+
+
 ALL_TOOLS = [
     calculator,
     check_equipment_status,
@@ -689,6 +731,7 @@ ALL_TOOLS = [
     generate_video_asset,
     create_support_ticket,
     web_search,
+    fetch_webpage_content,
     check_stock_price,
     check_weather,
     query_database,
@@ -699,4 +742,4 @@ ALL_TOOLS = [
     post_slack_message,
     get_github_issue,
     compare_documents_similarity,
-]
+]
