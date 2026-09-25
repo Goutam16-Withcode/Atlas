@@ -42,6 +42,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel, Field, field_validator
 
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
@@ -588,9 +589,20 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    error_msgs = []
+    for err in exc.errors():
+        msg = err.get("msg", "Validation error")
+        loc = " -> ".join(str(l) for l in err.get("loc", []))
+        error_msgs.append(f"{loc}: {msg}" if loc else msg)
     return JSONResponse(
         status_code=422,
-        content={"error": {"code": 422, "message": "Validation failed", "details": exc.errors()}},
+        content={
+            "error": {
+                "code": 422,
+                "message": "; ".join(error_msgs) or "Validation failed",
+                "details": jsonable_encoder(exc.errors()),
+            }
+        },
     )
 
 
@@ -678,7 +690,15 @@ def get_thread_owner(thread_id: str) -> Optional[str]:
 def assert_thread_access(thread_id: str, username: str):
     owner = get_thread_owner(thread_id)
     if owner and owner != username:
-        raise HTTPException(status_code=403, detail="Forbidden: Thread belongs to another user")
+        # If thread belonged to an anonymous guest session, allow newly registered/logged-in user to claim it
+        if owner.startswith("guest_") and not username.startswith("guest_"):
+            try:
+                with db_cursor() as cursor:
+                    cursor.execute("UPDATE thread_metadata SET username = ? WHERE thread_id = ?", (username, thread_id))
+                return
+            except Exception:
+                pass
+        raise HTTPException(status_code=403, detail="Forbidden access to this conversation thread.")
 
 
 # --------------------------------------------------------------------------- #
