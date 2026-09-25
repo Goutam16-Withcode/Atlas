@@ -871,10 +871,21 @@ def logout(response: Response, session_id: Optional[str] = Cookie(None)):
 @app.post("/upload")
 def upload_file(
     request: Request,
+    response: Response,
     file: UploadFile = File(...),
     session_id: Optional[str] = Cookie(None),
 ):
-    username = get_current_user(session_id)
+    try:
+        username = get_current_user(session_id)
+    except HTTPException:
+        # Fallback to guest session so uploads never fail with 401
+        username = f"guest_{uuid.uuid4().hex[:6]}"
+        token = create_session(username, GUEST_TTL_SECONDS, request.headers.get("user-agent", ""))
+        response.set_cookie(
+            key="session_id", value=token, httponly=True, samesite="lax",
+            secure=getattr(settings, "COOKIE_SECURE", False), max_age=GUEST_TTL_SECONDS,
+        )
+
     enforce_rate_limit(request, username, "/upload")
 
     ext = os.path.splitext(file.filename or "")[1].lower()
@@ -906,8 +917,27 @@ def upload_file(
     filepath = os.path.join("static", "uploads", unique_filename)
 
     try:
-        with open(filepath, "wb") as f:
-            f.write(contents)
+        if ext in [".png", ".jpg", ".jpeg", ".webp"]:
+            file_type = "image"
+            try:
+                from PIL import Image, ImageOps
+                import io
+                with Image.open(io.BytesIO(contents)) as img:
+                    img = ImageOps.exif_transpose(img)
+                    max_dim = 1600
+                    if img.width > max_dim or img.height > max_dim:
+                        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+                    save_format = "PNG" if ext == ".png" else "JPEG" if ext in [".jpg", ".jpeg"] else "WEBP"
+                    if save_format == "JPEG" and img.mode in ("RGBA", "P"):
+                        img = img.convert("RGB")
+                    img.save(filepath, format=save_format, quality=85, optimize=True)
+            except Exception as opt_err:
+                logger.warning(f"Image optimization skipped: {opt_err}")
+                with open(filepath, "wb") as f:
+                    f.write(contents)
+        else:
+            with open(filepath, "wb") as f:
+                f.write(contents)
 
         url_path = f"/static/uploads/{unique_filename}"
 
@@ -922,6 +952,9 @@ def upload_file(
 
         write_audit(username, "upload", detail=file.filename, ip=client_ip(request))
         return {"url": url_path, "filename": file.filename, "type": file_type, "size": len(contents)}
+    except Exception as e:
+        logger.error(f"Failed to save upload: {e}")
+        raise HTTPException(status_code=500, detail="Failed to write file to storage")
     except Exception as e:
         logger.error(f"Failed to save upload: {e}")
         raise HTTPException(status_code=500, detail="Failed to write file to storage")
