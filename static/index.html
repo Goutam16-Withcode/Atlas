@@ -2465,57 +2465,69 @@
     }
   }
 
+  function updateReadAloudButtonUI(btn, speaking) {
+    if (!btn) return;
+    btn.dataset.speaking = speaking ? 'true' : 'false';
+    btn.style.color = speaking ? 'var(--accent-primary)' : '';
+    const span = btn.querySelector('span');
+    if (span) span.textContent = speaking ? 'Stop' : 'Listen';
+
+    const existingIcon = btn.querySelector('i, svg');
+    if (existingIcon) {
+      const newI = document.createElement('i');
+      newI.setAttribute('data-lucide', speaking ? 'square' : 'volume-2');
+      newI.style.width = '14px';
+      newI.style.height = '14px';
+      existingIcon.replaceWith(newI);
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
+      }
+    }
+  }
+
   function toggleReadAloud(text, buttonElement) {
+    if (!buttonElement) return;
     const cleanText = text.replace(/#+\s+/g, '').replace(/\*+/g, '').replace(/`+/g, '');
 
     if (currentSpeechUtterance) {
+      const wasSpeakingThis = buttonElement.dataset.speaking === 'true';
       stopReadAloud();
-      if (buttonElement.dataset.speaking === 'true') return;
+      if (wasSpeakingThis) return;
     }
 
-    const icon = buttonElement.querySelector('i');
-    const span = buttonElement.querySelector('span');
-
+    if (!window.SpeechSynthesisUtterance) return;
     currentSpeechUtterance = new SpeechSynthesisUtterance(cleanText);
 
     currentSpeechUtterance.onstart = () => {
-      buttonElement.dataset.speaking = 'true';
-      buttonElement.style.color = 'var(--accent-primary)';
-      span.textContent = 'Stop';
-      icon.setAttribute('data-lucide', 'square');
-      lucide.createIcons();
+      updateReadAloudButtonUI(buttonElement, true);
     };
 
     currentSpeechUtterance.onend = () => {
-      buttonElement.dataset.speaking = 'false';
-      buttonElement.style.color = '';
-      span.textContent = 'Listen';
-      icon.setAttribute('data-lucide', 'volume-2');
-      lucide.createIcons();
+      updateReadAloudButtonUI(buttonElement, false);
       currentSpeechUtterance = null;
     };
 
     currentSpeechUtterance.onerror = () => {
-      buttonElement.dataset.speaking = 'false';
-      buttonElement.style.color = '';
-      span.textContent = 'Listen';
-      icon.setAttribute('data-lucide', 'volume-2');
-      lucide.createIcons();
+      updateReadAloudButtonUI(buttonElement, false);
       currentSpeechUtterance = null;
     };
 
-    window.speechSynthesis.speak(currentSpeechUtterance);
+    try {
+      window.speechSynthesis.speak(currentSpeechUtterance);
+    } catch (err) {
+      console.error('Speech synthesis error:', err);
+      updateReadAloudButtonUI(buttonElement, false);
+    }
   }
 
   function stopReadAloud() {
-    window.speechSynthesis.cancel();
+    try {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    } catch (_) {}
+
     document.querySelectorAll('.read-aloud').forEach(btn => {
-      btn.dataset.speaking = 'false';
-      btn.style.color = '';
-      btn.querySelector('span').textContent = 'Listen';
-      btn.querySelector('i').setAttribute('data-lucide', 'volume-2');
+      updateReadAloudButtonUI(btn, false);
     });
-    lucide.createIcons();
     currentSpeechUtterance = null;
   }
 
