@@ -12,73 +12,145 @@ Atlas is an advanced, enterprise-grade operations co-pilot and industrial suppor
 
 ## 📊 Architecture & Tracing Flow
 
-Below is the state machine representation of the end-to-end enterprise architecture. Every message flows through input guardrails, our smart multi-provider LLM gateway, the LangGraph ReAct state machine with hybrid dense retrieval, and persistent checkpointers:
+The Atlas architecture is organized into five modular, sequential stages. Every user request flows progressively from security sanitization to resilient gateway routing, multi-turn state machine reasoning, hybrid tool retrieval, and persistent checkpointer storage:
 
 ```mermaid
-flowchart TD
-    classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:2px;
-    classDef guardStyle fill:#FEF2F2,stroke:#EF4444,stroke-width:1.5px;
-    classDef gatewayStyle fill:#F0FDF4,stroke:#16A34A,stroke-width:1.5px;
-    classDef agentStyle fill:#F5F3FF,stroke:#7C3AED,stroke-width:1.5px;
-    classDef storageStyle fill:#FFFBEB,stroke:#D97706,stroke-width:1.5px;
-    classDef evalStyle fill:#ECFEFF,stroke:#0891B2,stroke-width:1.5px;
+flowchart LR
+    classDef stepStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:2px;
 
-    User([👤 User / Client Interface]):::clientStyle --> Ingress[🌐 FastAPI Endpoint & SSE Stream]:::clientStyle
-
-    subgraph Security_Guardrails ["🛡️ Enterprise Guardrails Engine"]
-        Ingress --> PromptInj[Prompt Injection Detector]:::guardStyle
-        PromptInj --> PIIMask[PII Masker / Redactor]:::guardStyle
-        PIIMask --> SafetyInterlock[Industrial Safety Policy & LOTO Interlock]:::guardStyle
-    end
-
-    subgraph LLM_Gateway ["⚡ Smart LLM Gateway & Resilience"]
-        SafetyInterlock --> QueryCache{SHA-256 Cache Hit?}:::gatewayStyle
-        QueryCache -- Yes --> CachedResponse[Return Cached Response]:::gatewayStyle
-        QueryCache -- No --> RateLimiter[Sliding-Window & Token Bucket Limiter]:::gatewayStyle
-        RateLimiter --> CircuitBreaker{Circuit Breaker State}:::gatewayStyle
-        CircuitBreaker -- CLOSED / HALF-OPEN --> SmartRouter[Smart Model Router]:::gatewayStyle
-        SmartRouter --> PrimaryLLM[Groq Qwen 3.8-27B / GPT-OSS 120B]:::gatewayStyle
-        PrimaryLLM -- 429 / Fail --> FallbackRouter[OpenRouter Llama-3.3-70B]:::gatewayStyle
-        CircuitBreaker -- OPEN --> FallbackRouter
-    end
-
-    subgraph LangGraph_Engine ["🧠 LangGraph Agentic ReAct Engine"]
-        SmartRouter --> ClassifyIntent[classify_intent]:::agentStyle
-        ClassifyIntent --> CheckEscalation{Needs Escalation?}:::agentStyle
-        CheckEscalation -- Yes --> EscalationNode[escalation_check]:::agentStyle
-        CheckEscalation -- No --> CompressHistory[compress_history]:::agentStyle
-        EscalationNode --> CompressHistory
-        CompressHistory --> AgentNode[agent_node]:::agentStyle
-        AgentNode --> CheckTools{Has Tool Calls?}:::agentStyle
-        CheckTools -- Yes --> ToolNode[tools / ToolNode]:::agentStyle
-        ToolNode --> AgentNode
-        CheckTools -- No --> OutputVerification[Output Guardrail Filter]:::guardStyle
-    end
-
-    subgraph Dense_Retrieval ["🔍 Hybrid Dense Retrieval & Tools Engine"]
-        ToolNode -.-> DenseSearch[128-dim Semantic Vector Search]:::storageStyle
-        ToolNode -.-> BM25Search[BM25 Keyword Matcher]:::storageStyle
-        DenseSearch & BM25Search --> RRF[Reciprocal Rank Fusion RRF]:::storageStyle
-        ToolNode -.-> SQLKB[Industrial Equipment & SOP SQL DB]:::storageStyle
-        ToolNode -.-> MCPClient[MCP Tool Integrations & Extensions]:::storageStyle
-        ToolNode -.-> WebVision[DuckDuckGo / Vision / Whisper Audio]:::storageStyle
-    end
-
-    subgraph Persistence_Layer ["💾 Persistent Checkpointers & Audit"]
-        AgentNode -.-> NeonPostgres[(Neon PostgreSQL Checkpointer)]:::storageStyle
-        NeonPostgres -.-> FallbackSQLite[(Local SQLite Checkpointer & WAL)]:::storageStyle
-        OutputVerification -.-> AuditLogs[(Audit & Security Trail)]:::storageStyle
-    end
-
-    subgraph Evaluation_Suite ["📈 Golden Benchmark Evaluation"]
-        GoldenDS[2,500 Golden Questions]:::evalStyle --> EvalRunner[Benchmark Evaluation Runner]:::evalStyle
-        EvalRunner --> BenchmarkReport[92.00% Accuracy Report]:::evalStyle
-    end
-
-    OutputVerification --> ClientEgress([💬 Client Response / Canvas Artifact]):::clientStyle
+    Step1["🛡️ Step 1<br/><b>Guardrails</b>"]:::stepStyle --> Step2["⚡ Step 2<br/><b>Smart Gateway</b>"]:::stepStyle
+    Step2 --> Step3["🧠 Step 3<br/><b>LangGraph ReAct</b>"]:::stepStyle
+    Step3 --> Step4["🔍 Step 4<br/><b>Hybrid Tools & RAG</b>"]:::stepStyle
+    Step4 --> Step5["💾 Step 5<br/><b>Persistence & Egress</b>"]:::stepStyle
 ```
 
 ---
+
+### 🛡️ Step 1: Input Ingestion & Enterprise Guardrails
+Before prompts reach the LLM or gateway, every incoming payload (text, PDF, audio, or images) is inspected and sanitized:
+
+```mermaid
+flowchart TD
+    classDef guardStyle fill:#FEF2F2,stroke:#EF4444,stroke-width:1.5px;
+    classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
+
+    User([👤 User Prompt & Uploads]):::clientStyle --> Ingress[🌐 FastAPI Endpoint & SSE Stream]:::clientStyle
+    Ingress --> InjectionCheck{Prompt Injection?}:::guardStyle
+    InjectionCheck -- Detected --> BlockPayload[🚫 Reject & Audit Flag]:::guardStyle
+    InjectionCheck -- Clean --> PIIMask[🔒 Heuristic & Regex PII Masking]:::guardStyle
+    PIIMask --> SafetyRules[⚠️ Industrial Safety & LOTO Interlocks]:::guardStyle
+    SafetyRules --> GatewayEgress([Proceed to LLM Gateway]):::clientStyle
+```
+
+- **Prompt Injection Defense:** Blocks jailbreak attempts, delimiter hijackings, and system prompt extraction.
+- **Automated PII Masking:** Redacts emails, phone numbers, API keys, and sensitive employee credentials.
+- **Safety Interlocks:** Validates mandatory Lockout/Tagout (LOTO) protocols and safety warnings on high-risk industrial equipment.
+
+---
+
+### ⚡ Step 2: Smart LLM Gateway & Resilience
+The intelligent gateway manages traffic, prevents API rate-limiting, and routes requests across models:
+
+```mermaid
+flowchart TD
+    classDef gatewayStyle fill:#F0FDF4,stroke:#16A34A,stroke-width:1.5px;
+    classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
+
+    GuardrailInput([From Step 1 Guardrails]):::clientStyle --> CacheCheck{SHA-256 Cache Hit?}:::gatewayStyle
+    CacheCheck -- Hit --> FastReturn[⚡ Immediate Cached Response]:::gatewayStyle
+    CacheCheck -- Miss --> RateLimit[⏱️ Sliding-Window & Token-Bucket Rate Limiter]:::gatewayStyle
+    RateLimit --> CircuitBreaker{Circuit Breaker State}:::gatewayStyle
+    CircuitBreaker -- CLOSED / HALF-OPEN --> PrimaryLLM[Groq Qwen 3.8-27B / GPT-OSS 120B]:::gatewayStyle
+    PrimaryLLM -- 429 / Timeout --> FallbackLLM[OpenRouter Multi-Provider Fallback]:::gatewayStyle
+    CircuitBreaker -- OPEN --> FallbackLLM
+    FallbackLLM --> GraphIngress([Proceed to LangGraph Engine]):::clientStyle
+    PrimaryLLM --> GraphIngress
+```
+
+- **Query Caching:** Instant response delivery on repeated queries, saving token quotas and reducing latency.
+- **Sliding-Window Rate Limiting:** Enforces per-minute and per-day user token and request limits.
+- **3-State Circuit Breaker:** Automatically trips on consecutive upstream provider errors to protect throughput.
+- **Smart Model Routing:** Auto-routes standard prompts to ultra-fast Groq inference and multimodal vision requests to OpenRouter Qwen-2-VL.
+
+---
+
+### 🧠 Step 3: LangGraph ReAct Orchestration Cycle
+The multi-turn conversational core manages intent detection, token conservation, and agent reasoning loops:
+
+```mermaid
+flowchart TD
+    classDef agentStyle fill:#F5F3FF,stroke:#7C3AED,stroke-width:1.5px;
+    classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
+
+    GatewayInput([From Step 2 Gateway]):::clientStyle --> IntentRouting[classify_intent]:::agentStyle
+    IntentRouting --> EscalationCheck{Needs Escalation?}:::agentStyle
+    EscalationCheck -- Yes --> FlagEscalation[escalation_check / Priority Ticket]:::agentStyle
+    EscalationCheck -- No --> CompressHistory[compress_history / Context Summary]:::agentStyle
+    FlagEscalation --> CompressHistory
+    CompressHistory --> AgentCore[agent_node / ReAct Reasoner]:::agentStyle
+    AgentCore --> ToolCallDecision{Requires Tool Call?}:::agentStyle
+    ToolCallDecision -- Yes --> ToolDispatch([Step 4: Execute Tools & RAG]):::clientStyle
+    ToolCallDecision -- No --> VerificationStep([Proceed to Step 5: Output Filter]):::clientStyle
+```
+
+- **Intent Classification:** Rapidly categorizes queries into `technical_support`, `knowledge_query`, `escalation`, or `general`.
+- **Dynamic Context Compression:** Automatically summarizes conversations beyond 12 turns, preventing token overflow while preserving critical IDs and state.
+- **ReAct Feedback Loop:** Interleaves reasoning thoughts, tool calls, and observation results until the task is resolved.
+
+---
+
+### 🔍 Step 4: Hybrid Dense RAG & Multimodal Tool Execution
+When the agent determines external data or real-world action is required, it accesses Atlas's tool ecosystem:
+
+```mermaid
+flowchart TD
+    classDef toolStyle fill:#FFFBEB,stroke:#D97706,stroke-width:1.5px;
+    classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
+
+    ToolCall([Agent Tool Invocation]):::clientStyle --> Dispatcher{Tool Type}:::toolStyle
+
+    Dispatcher --> DenseRAG[Dense Vector Search (128-dim)]:::toolStyle
+    Dispatcher --> KeywordRAG[BM25 Keyword Search]:::toolStyle
+    DenseRAG & KeywordRAG --> RRFMerge[Reciprocal Rank Fusion (RRF)]:::toolStyle
+
+    Dispatcher --> WebTools[URL Scraper & DuckDuckGo Search]:::toolStyle
+    Dispatcher --> IndustrialDB[SCADA Telemetry & Equipment Status DB]:::toolStyle
+    Dispatcher --> MCPBridge[MCP External Server Integrations]:::toolStyle
+    Dispatcher --> MediaEngine[Image / Video Generation & Whisper Audio]:::toolStyle
+
+    RRFMerge & WebTools & IndustrialDB & MCPBridge & MediaEngine --> ToolResult([Observation Feedback to Step 3 Agent]):::clientStyle
+```
+
+- **Hybrid Dense Retrieval (RRF):** Combines 128-dimensional dense vector embeddings with BM25 keyword matching using Reciprocal Rank Fusion.
+- **URL & Web Extractor (`fetch_webpage_content`):** Directly fetches and reads live web pages when users supply links.
+- **Multimodal Engines:** PDF document text extraction, Qwen-2-VL vision processing, Whisper audio transcription, and Pollinations/Replicate image and video generators.
+- **MCP Extensibility:** Plug-and-play Model Context Protocol server tools dynamically registered at startup.
+
+---
+
+### 💾 Step 5: Enterprise Persistence, Checkpointing & Streaming Egress
+The final response undergoes output security filtering before being persisted and streamed to the user:
+
+```mermaid
+flowchart TD
+    classDef storageStyle fill:#FFFBEB,stroke:#D97706,stroke-width:1.5px;
+    classDef guardStyle fill:#FEF2F2,stroke:#EF4444,stroke-width:1.5px;
+    classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
+
+    AgentOutput([Agent Final Response]):::clientStyle --> OutputFilter[Output Guardrails & Safety Filter]:::guardStyle
+    OutputFilter --> Checkpointer[(Neon PostgreSQL / Local SQLite WAL)]:::storageStyle
+    OutputFilter --> Audit[(Audit Log & Security Trail)]:::storageStyle
+    OutputFilter --> SSEStream[SSE Token Streaming]:::clientStyle
+    SSEStream --> ClientApp([💬 Interactive Chat & Canvas Artifacts]):::clientStyle
+```
+
+- **Dual-Engine Checkpointing:** Remote serverless Neon PostgreSQL with automatic local SQLite WAL fallback for zero-downtime persistence.
+- **Output Guardrails:** Verifies safety statements, strips unintended leakage, and enforces structural formatting.
+- **Server-Sent Events (SSE):** Real-time streaming tokens with automatic browser Markdown link formatting (`target="_blank"`).
+- **Interactive Canvas Artifacts:** Slide presentation player, research poster viewer, and native `.pptx` / `.pdf` export generation.
+
+---
+
 
 ## 🧠 Production-Grade Agentic Patterns
 

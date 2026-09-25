@@ -974,32 +974,41 @@ def build_human_message(req: ChatRequest):
     has_image = False
     image_parts = []
     transcriptions = []
-    text_content = req.message
+    text_content = (req.message or "").strip()
 
     for att in req.attachments:
-        local_path = att.url.lstrip("/")
-        resolved = os.path.realpath(local_path)
+        raw_url = att.url or ""
+        local_path = raw_url.lstrip("/\\")
+        norm_path = os.path.normpath(local_path)
+        resolved = os.path.realpath(norm_path)
         allowed_root = os.path.realpath("static")
-        if not resolved.startswith(allowed_root) or not os.path.exists(resolved):
+        if not resolved.lower().startswith(allowed_root.lower()) or not os.path.exists(resolved):
             continue
 
-        if att.type == "image":
+        ext = os.path.splitext(resolved)[1].lower()
+
+        if att.type == "image" or ext in [".png", ".jpg", ".jpeg", ".webp", ".gif"]:
             has_image = True
             with open(resolved, "rb") as img_file:
                 b64_string = base64.b64encode(img_file.read()).decode("utf-8")
+            mime = "image/png" if ext == ".png" else "image/webp" if ext == ".webp" else "image/gif" if ext == ".gif" else "image/jpeg"
             image_parts.append({
                 "type": "image_url",
-                "image_url": {"url": f"data:image/jpeg;base64,{b64_string}"},
+                "image_url": {"url": f"data:{mime};base64,{b64_string}"},
             })
-        elif att.type in ["audio", "video"]:
+        elif att.type in ["audio", "video"] or ext in [".mp3", ".wav", ".m4a", ".ogg", ".mp4", ".mov", ".avi", ".webm"]:
             transcription = transcribe_audio_file(resolved)
-            transcriptions.append(f"[Uploaded {att.type} transcription for '{att.filename or 'file'}': '{transcription}']")
-        elif att.type == "file" or resolved.lower().endswith(".pdf"):
+            transcriptions.append(f"[Uploaded {att.type} transcription for '{att.filename or 'media file'}': '{transcription}']")
+        elif att.type == "file" or ext == ".pdf":
             pdf_text = extract_text_from_pdf(resolved)
             transcriptions.append(f"[Content of uploaded document '{att.filename or 'document.pdf'}']:\n{pdf_text}")
 
     if transcriptions:
-        text_content += "\n\n" + "\n".join(transcriptions)
+        text_content = (text_content + "\n\n" + "\n".join(transcriptions)).strip()
+
+    # Guarantee non-empty prompt instruction so LLM APIs don't reject the payload
+    if not text_content:
+        text_content = "Please analyze the attached image/document in detail, explain its key elements, and summarize any notable findings."
 
     if has_image:
         content_list = [{"type": "text", "text": text_content}] + image_parts
