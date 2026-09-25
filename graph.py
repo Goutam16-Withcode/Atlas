@@ -66,13 +66,9 @@ def build_graph(checkpointer=None):
     graph.add_edge("tools", "agent_node")
 
     if checkpointer is None:
-        conn = sqlite3.connect(settings.SQLITE_DB_PATH, check_same_thread=False)
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA synchronous=NORMAL;")
-        conn.execute("PRAGMA cache_size=-64000;")
-        conn.execute("PRAGMA temp_store=MEMORY;")
-        checkpointer = SqliteSaver(conn)
-        logger.info(f"Using SQLite persistence at {settings.SQLITE_DB_PATH}")
+        from db.remote_db import db_manager
+        checkpointer = db_manager.get_checkpointer()
+
 
     compiled = graph.compile(checkpointer=checkpointer)
     return compiled

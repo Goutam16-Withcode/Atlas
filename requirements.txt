@@ -14,3 +14,10 @@ langsmith
 # MCP (Model Context Protocol) support
 langchain-mcp-adapters>=0.1.0
 fastmcp>=2.0.0
+
+# Remote Database (PostgreSQL / Supabase / Neon) & Persistence
+psycopg[binary]>=3.1.0
+langgraph-checkpoint-postgres>=2.0.0
+
+# Dense Vector & Retrieval Engine
+numpy>=1.24.0

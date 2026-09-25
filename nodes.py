@@ -26,8 +26,11 @@ from tools import ALL_TOOLS
 from config import settings
 from logger import get_logger
 from mcp_config import get_all_tools, MCP_ENABLED
+from gateway import gateway
+from guardrails import guardrails
 
 logger = get_logger(__name__)
+
 
 _key_index = 0
 
@@ -384,6 +387,17 @@ def agent_node(state: ChatState, config: RunnableConfig = None) -> dict:
         if has_image:
             break
 
+    # 1. Guardrail & Gateway Check
+    is_industrial = state.get("intent") in ["technical_support", "escalation"]
+    client_id = username or "default_user"
+    
+    # Check input guardrail on latest user message
+    if messages and isinstance(messages[-1], HumanMessage) and isinstance(messages[-1].content, str):
+        guard_in = guardrails.process_input(messages[-1].content)
+        if guard_in.is_blocked:
+            blocked_msg = AIMessage(content=f"🚫 {guard_in.rejection_reason}")
+            return {"messages": [blocked_msg], "retry_count": 0, "error": guard_in.rejection_reason}
+
     active_type = "vision" if has_image else "primary"
     active_llm = get_llm_instance(active_type)
 
@@ -393,11 +407,26 @@ def agent_node(state: ChatState, config: RunnableConfig = None) -> dict:
 
     while retries < settings.MAX_LLM_RETRIES:
         try:
+            # Check rate limiter
+            allowed, limit_msg = gateway.rate_limiter.check_and_record_request(client_id) if hasattr(gateway, "rate_limiter") else (True, "")
+            if not allowed:
+                return {"messages": [AIMessage(content=f"⚠️ {limit_msg}")], "retry_count": 0, "error": limit_msg}
+
             response = active_llm.invoke(full_messages)
+            
+            # Output Guardrails Sanitize
+            if isinstance(response, AIMessage) and isinstance(response.content, str):
+                guard_out = guardrails.process_output(
+                    model_output=response.content,
+                    is_industrial=is_industrial
+                )
+                response.content = guard_out.sanitized_text
+
             return {"messages": [response], "retry_count": 0, "error": None}
         except Exception as e:
             err_msg = str(e)
             last_error = err_msg
+
             
             # Check if this is a Groq function calling parser failure
             if "failed_generation" in err_msg:

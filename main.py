@@ -808,12 +808,12 @@ def login_guest(response: Response, request: Request):
         raise HTTPException(status_code=500, detail="Internal server error during guest sign in")
 
 
-@app.post("/logout")
+@app.api_route("/logout", methods=["GET", "POST"])
 def logout(response: Response, session_id: Optional[str] = Cookie(None)):
     if session_id:
         payload = decode_session_token(session_id)
         if payload:
-            write_audit(payload["sub"], "logout")
+            write_audit(payload.get("sub", "unknown"), "logout")
             jti = payload.get("jti")
             if jti:
                 try:
@@ -821,12 +821,17 @@ def logout(response: Response, session_id: Optional[str] = Cookie(None)):
                         cursor.execute("DELETE FROM sessions WHERE session_id = ?", (jti,))
                 except Exception as e:
                     logger.warning(f"Failed to delete session {jti} on logout: {e}")
-    response.delete_cookie(
-        "session_id",
+    # Force clear across all permutations of secure/samesite
+    response.delete_cookie(key="session_id", path="/", httponly=True, samesite="lax")
+    response.set_cookie(
+        key="session_id",
+        value="",
+        max_age=0,
+        expires=0,
         path="/",
         httponly=True,
         samesite="lax",
-        secure=settings.COOKIE_SECURE,
+        secure=False,
     )
     return {"status": "ok"}
 
