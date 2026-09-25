@@ -11,6 +11,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  if (window.marked) {
+    const renderer = new marked.Renderer();
+    renderer.link = function(href, title, text) {
+      let linkHref = typeof href === 'object' ? href.href : href;
+      let linkTitle = typeof href === 'object' ? href.title : title;
+      let linkText = typeof href === 'object' ? href.text : text;
+      const titleAttr = linkTitle ? ` title="${String(linkTitle).replace(/"/g, '&quot;')}"` : '';
+      return `<a href="${linkHref}" target="_blank" rel="noopener noreferrer"${titleAttr}>${linkText}</a>`;
+    };
+    marked.use({ renderer });
+  }
+</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -1287,6 +1300,15 @@
     btnScrollBottom.addEventListener('click', scrollToBottom);
     messagesViewport.addEventListener('scroll', handleViewportScroll);
 
+    // Force all hyperlinks clicked in the conversation to open in a new browser tab
+    messagesContainer.addEventListener('click', (e) => {
+      const link = e.target.closest('a');
+      if (link && link.getAttribute('href') && !link.getAttribute('href').startsWith('javascript:') && !link.getAttribute('href').startsWith('#')) {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+
     deleteModalCancel.addEventListener('click', () => deleteModal.classList.remove('active'));
     deleteModalConfirm.addEventListener('click', executeDeleteThread);
 
@@ -2065,6 +2087,12 @@
     const bodyHTML = marked.parse(content);
     const contentArea = row.querySelector('.message-content');
     contentArea.innerHTML = bodyHTML;
+
+    // Ensure all hyperlinks provided during chat open in a new tab
+    contentArea.querySelectorAll('a').forEach(a => {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    });
 
     row.querySelectorAll('[data-downloadable="true"]').forEach((el) => {
       if (el.parentElement.querySelector('.media-download-btn')) return;
