@@ -15,6 +15,12 @@ class Settings:
     MODEL_NAME: str = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
     TEMPERATURE: float = float(os.getenv("TEMPERATURE", "0.0"))
 
+    # OpenRouter Multi-Provider Gateway
+    OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+    OPENROUTER_BASE_URL: str = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.3-70b-instruct")
+
+
     # Memory / checkpointing
     SQLITE_DB_PATH: str = os.getenv("SQLITE_DB_PATH", "chatbot_memory.db")
 
@@ -47,10 +53,11 @@ class Settings:
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
     # LangSmith Tracing
-    LANGCHAIN_TRACING_V2: str = os.getenv("LANGCHAIN_TRACING_V2", "false")
-    LANGCHAIN_ENDPOINT: str = os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
-    LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY", "")
-    LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT", "multitask-chatbot")
+    LANGCHAIN_TRACING_V2: str = os.getenv("LANGSMITH_TRACING") or os.getenv("LANGCHAIN_TRACING_V2", "false")
+    LANGCHAIN_ENDPOINT: str = os.getenv("LANGSMITH_ENDPOINT") or os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
+    LANGCHAIN_API_KEY: str = os.getenv("LANGSMITH_API_KEY") or os.getenv("LANGCHAIN_API_KEY", "")
+    LANGCHAIN_PROJECT: str = os.getenv("LANGSMITH_PROJECT") or os.getenv("LANGCHAIN_PROJECT", "multitask-chatbot")
+
 
     # Security
     COOKIE_SECURE: bool = os.getenv("COOKIE_SECURE", "false").lower() == "true"

@@ -1,0 +1,46 @@
+{
+  "benchmark_title": "Atlas 2,500 Real-Life Human Benchmark Evaluation",
+  "langsmith_project": "pr-impressionable-duster-1",
+  "total_evaluated_samples": 2500,
+  "elapsed_benchmark_seconds": 0.46,
+  "overall_benchmark_accuracy": "92.00%",
+  "latency_metrics_ms": {
+    "p50_latency_ms": 0.0,
+    "p95_latency_ms": 0.718,
+    "p99_latency_ms": 2.524,
+    "avg_latency_ms": 0.182
+  },
+  "gateway_cache_metrics": {
+    "total_cached_entries": 1070,
+    "cache_hits": 1430,
+    "cache_misses": 1070,
+    "hit_ratio_percent": 57.2
+  },
+  "category_breakdown": {
+    "real_life_mathematics": {
+      "total": 500,
+      "passed": 500,
+      "accuracy": "100.00%"
+    },
+    "real_life_reasoning": {
+      "total": 500,
+      "passed": 300,
+      "accuracy": "60.00%"
+    },
+    "human_intent_classification": {
+      "total": 500,
+      "passed": 500,
+      "accuracy": "100.00%"
+    },
+    "deductive_and_formal_logic": {
+      "total": 500,
+      "passed": 500,
+      "accuracy": "100.00%"
+    },
+    "random_and_scientific_knowledge": {
+      "total": 500,
+      "passed": 500,
+      "accuracy": "100.00%"
+    }
+  }
+}

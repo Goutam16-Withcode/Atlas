@@ -16,8 +16,11 @@ from langchain_core.tools import tool
 from config import settings
 from logger import get_logger
 from asset_export import save_remote_asset
+from db.remote_db import db_manager
+from engine.dense_retriever import dense_engine
 
 logger = get_logger("tools")
+
 
 # ---------------------------------------------------------------------
 # Simulated equipment/knowledge base (stand-in for a vector DB / CMMS)
@@ -79,10 +82,31 @@ def calculator(expression: str) -> str:
 def check_equipment_status(equipment_id: str) -> str:
     """Look up the live status, last maintenance date, and relevant manual
     reference for a piece of industrial equipment by its ID
-    (e.g. 'conveyor-belt-3', 'hydraulic-press-1', 'cooling-pump-2')."""
+    (e.g. 'conveyor-belt-3', 'hydraulic-press-1', 'cooling-pump-2', 'turbine-generator-4')."""
     key = equipment_id.strip().lower()
+    
+    # Check remote database first
+    db_record = db_manager.get_equipment(key)
+    if db_record:
+        telemetry_details = []
+        if db_record.get("temperature_c") is not None:
+            telemetry_details.append(f"Temperature: {db_record['temperature_c']}°C")
+        if db_record.get("pressure_psi") is not None:
+            telemetry_details.append(f"Pressure: {db_record['pressure_psi']} PSI")
+        if db_record.get("vibration_hz") is not None:
+            telemetry_details.append(f"Vibration: {db_record['vibration_hz']} Hz")
+        telemetry_str = ("\nLive Telemetry: " + ", ".join(telemetry_details)) if telemetry_details else ""
+
+        return (
+            f"Equipment: {db_record['equipment_id']}\n"
+            f"Status: {db_record['status']}\n"
+            f"Last maintenance: {db_record['last_maintenance']}\n"
+            f"Manual reference: {db_record['manual_ref']}"
+            f"{telemetry_str}"
+        )
+
     if key not in _EQUIPMENT_DB:
-        known = ", ".join(_EQUIPMENT_DB.keys())
+        known = ", ".join(list(_EQUIPMENT_DB.keys()) + ["turbine-generator-4", "feedwater-heater-A"])
         return f"No record found for '{equipment_id}'. Known equipment: {known}"
     info = _EQUIPMENT_DB[key]
     return (
@@ -91,6 +115,7 @@ def check_equipment_status(equipment_id: str) -> str:
         f"Last maintenance: {info['last_maintenance']}\n"
         f"Manual reference: {info['manual_ref']}"
     )
+
 
 
 # ---------------------------------------------------------------------
@@ -234,49 +259,22 @@ class DenseTfidfRetriever:
 @tool
 def search_knowledge_base(query: str) -> str:
     """Search the internal operations knowledge base for procedures, safety
-    protocols, and standard operating procedures (SOPs). Uses a hybrid
-    BM25 and vector-style TF-IDF semantic matcher with automatic query translation."""
-    query_tokens = [w.lower().strip(",.!?()\"';:") for w in query.split() if len(w) > 2]
-    expanded_tokens = list(query_tokens)
-    for token in query_tokens:
-        for key, syns in SYNONYMS.items():
-            if token == key or key in token:
-                expanded_tokens.extend(syns)
-    expanded_tokens = list(set(expanded_tokens))
-
-    bm25 = BM25Retriever(_KNOWLEDGE_BASE_DOCS)
-    bm25_scores = bm25.get_scores(expanded_tokens)
-
-    dense = DenseTfidfRetriever(_KNOWLEDGE_BASE_DOCS)
-    dense_scores = dense.get_scores(expanded_tokens)
-
-    def normalize(scores):
-        min_s, max_s = min(scores), max(scores)
-        if max_s - min_s == 0:
-            return [1.0 / len(scores)] * len(scores)
-        return [(s - min_s) / (max_s - min_s) for s in scores]
-
-    norm_bm25 = normalize(bm25_scores)
-    norm_dense = normalize(dense_scores)
-
-    hybrid_scores = [0.5 * b_s + 0.5 * d_s for b_s, d_s in zip(norm_bm25, norm_dense)]
-    ranked_indices = sorted(range(len(hybrid_scores)), key=lambda idx: hybrid_scores[idx], reverse=True)
-
-    results = []
-    for i in range(min(3, len(ranked_indices))):
-        idx = ranked_indices[i]
-        if hybrid_scores[idx] > 0.05:
-            doc = _KNOWLEDGE_BASE_DOCS[idx]
-            results.append(
-                f"[{doc['id']}] Title: {doc['title']}\n"
-                f"Category: {doc['category']}\n"
-                f"Content: {doc['content']}\n"
-                f"Match Score: {hybrid_scores[idx]:.3f}"
-            )
-
+    protocols, and standard operating procedures (SOPs). Uses a high-performance
+    dense vector similarity and BM25 hybrid search engine."""
+    results = dense_engine.search(query, top_k=3)
     if not results:
         return "No matching entry found in the operations knowledge base. Please check keywords or escalate."
-    return "\n---\n".join(results)
+    
+    formatted = []
+    for r in results:
+        formatted.append(
+            f"[{r['id']}] Title: {r['title']}\n"
+            f"Category: {r['category']}\n"
+            f"Content: {r['content']}\n"
+            f"Dense Similarity: {r['dense_similarity']:.3f} | RRF Score: {r['rrf_score']:.4f}"
+        )
+    return "\n---\n".join(formatted)
+
 
 
 # ---------------------------------------------------------------------
@@ -399,7 +397,16 @@ def create_support_ticket(issue_summary: str, priority: str = "medium") -> str:
         "created_at": datetime.datetime.utcnow().isoformat(),
         "status": "open",
     }
+    # Persist into database
+    db_manager.save_ticket(
+        ticket_id=ticket_id,
+        equipment_id="system",
+        issue=issue_summary,
+        priority=priority,
+        metadata={"source": "agent_tool", "status": "open"}
+    )
     return f"Ticket created: {ticket_id} (priority: {priority}). A technician will be notified."
+
 
 
 @tool
