@@ -1651,6 +1651,18 @@ def readiness():
     return {"status": "ready"}
 
 
+@app.get("/.well-known/appspecific/com.chrome.devtools.json")
+def chrome_devtools_probe():
+    """Silently acknowledge Chrome/Chromium DevTools probes with 200 OK."""
+    return {}
+
+
+@app.get("/favicon.ico")
+def favicon_endpoint():
+    """Return 204 No Content for browser favicon requests."""
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 # --------------------------------------------------------------------------- #
 # Startup & Static Mounting
 # --------------------------------------------------------------------------- #
