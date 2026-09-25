@@ -850,30 +850,30 @@
           </svg>
           <span class="portal-title-text">Atlas</span>
         </div>
-        <h1 class="portal-hero-title">Your operations copilot, on call around the clock.</h1>
-        <p class="portal-hero-desc">Atlas troubleshoots equipment, walks safety procedures, runs the calculations, and keeps a clear record of everything — so your team moves faster with fewer surprises.</p>
+        <h1 class="portal-hero-title">Autonomous Intelligence for Mission-Critical Engineering & Operations.</h1>
+        <p class="portal-hero-desc">Atlas unifies live equipment diagnostics, OSHA safety protocol verification, multimodal technical document intelligence, and multi-turn ReAct problem solving — driving peak uptime across industrial workflows.</p>
       </div>
 
       <div class="portal-features">
         <div class="portal-feature-item">
-          <div class="portal-feature-icon"><i data-lucide="image"></i></div>
+          <div class="portal-feature-icon"><i data-lucide="scan"></i></div>
           <div class="portal-feature-text">
-            <h4>Sees what you show it</h4>
-            <p>Upload a photo for a visual check, or a recording for automatic transcription.</p>
+            <h4>Multimodal Visual Intelligence</h4>
+            <p>Inspect component schematics, machinery photos, and multi-page technical manuals with instant semantic extraction.</p>
           </div>
         </div>
         <div class="portal-feature-item">
-          <div class="portal-feature-icon"><i data-lucide="mic"></i></div>
+          <div class="portal-feature-icon"><i data-lucide="radio"></i></div>
           <div class="portal-feature-text">
-            <h4>Talk it through</h4>
-            <p>Dictate a report on the floor, and have responses read back to you hands-free.</p>
+            <h4>Hands-Free Field Telemetry</h4>
+            <p>Log real-time floor observations and audit notes using Whisper voice dictation with automatic speech readbacks.</p>
           </div>
         </div>
         <div class="portal-feature-item">
-          <div class="portal-feature-icon"><i data-lucide="book-open"></i></div>
+          <div class="portal-feature-icon"><i data-lucide="cpu"></i></div>
           <div class="portal-feature-text">
-            <h4>Ready-made playbooks</h4>
-            <p>Pull a proven prompt, fill in the specifics, and get consistent results every time.</p>
+            <h4>2,500+ Engineering Playbooks</h4>
+            <p>Execute verified SOP templates, thermodynamic calculations, and incident escalation workflows with single-click precision.</p>
           </div>
         </div>
       </div>
@@ -1597,9 +1597,8 @@
     await refreshThreadsList();
 
     const savedThread = localStorage.getItem('active-thread-id');
-    if (savedThread && allThreads.some(t => t.thread_id === savedThread)) {
-      await selectThread(savedThread);
-    } else if (savedThread && savedThread.startsWith('chat-')) {
+    const savedUser = localStorage.getItem('active-thread-user');
+    if (savedUser === username && savedThread && allThreads.some(t => t.thread_id === savedThread)) {
       await selectThread(savedThread);
     } else if (allThreads.length > 0) {
       await selectThread(allThreads[0].thread_id);
@@ -2595,13 +2594,22 @@
 
     try {
       const selectedLang = document.getElementById('select-lang').value;
-      const res = await fetch('/chat/stream', {
+      let res = await fetch('/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ thread_id: activeThreadId, message: messageText, attachments: currentAttachments, language: selectedLang })
       });
 
-      if (res.status === 403) throw new Error('Forbidden access to this conversation thread.');
+      if (res.status === 403) {
+        // If thread belonged to an earlier user session, smoothly create fresh thread for current user
+        await createNewChat();
+        res = await fetch('/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ thread_id: activeThreadId, message: messageText, attachments: currentAttachments, language: selectedLang })
+        });
+      }
+
       if (!res.ok) { const errData = await res.json().catch(() => ({})); throw new Error(errData.error?.message || errData.detail || 'Service error'); }
 
       removeThinkingIndicator();

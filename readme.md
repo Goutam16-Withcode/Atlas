@@ -6,7 +6,7 @@
   <img src="static/screenshots/login_screen.png" alt="Atlas Login Screen" width="800" />
 </p>
 
-Atlas is an advanced, enterprise-grade operations co-pilot and industrial support chatbot. Built on a modular **LangGraph** state machine and a high-performance **FastAPI** backend, Atlas features a premium glassmorphic frontend UI designed to assist industrial engineers, plant operators, and researchers.
+Atlas is an enterprise-grade autonomous intelligence platform for industrial engineering and mission-critical operations. Built on a modular **LangGraph** ReAct state machine, an intelligent multi-provider **LLM Gateway**, and a high-performance **FastAPI** backend, Atlas empowers industrial engineers, plant operators, and technical researchers with real-time equipment diagnostics, OSHA safety compliance verification, hybrid dense retrieval (RAG), and multimodal document intelligence.
 
 ---
 
@@ -34,12 +34,12 @@ flowchart TD
     classDef guardStyle fill:#FEF2F2,stroke:#EF4444,stroke-width:1.5px;
     classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
 
-    User([👤 User Prompt & Uploads]):::clientStyle --> Ingress[🌐 FastAPI Endpoint & SSE Stream]:::clientStyle
-    Ingress --> InjectionCheck{Prompt Injection?}:::guardStyle
-    InjectionCheck -- Detected --> BlockPayload[🚫 Reject & Audit Flag]:::guardStyle
-    InjectionCheck -- Clean --> PIIMask[🔒 Heuristic & Regex PII Masking]:::guardStyle
-    PIIMask --> SafetyRules[⚠️ Industrial Safety & LOTO Interlocks]:::guardStyle
-    SafetyRules --> GatewayEgress([Proceed to LLM Gateway]):::clientStyle
+    User(["👤 User Prompt & Uploads"]):::clientStyle --> Ingress["🌐 FastAPI Endpoint & SSE Stream"]:::clientStyle
+    Ingress --> InjectionCheck{"Prompt Injection?"}:::guardStyle
+    InjectionCheck -- Detected --> BlockPayload["🚫 Reject & Audit Flag"]:::guardStyle
+    InjectionCheck -- Clean --> PIIMask["🔒 Heuristic & Regex PII Masking"]:::guardStyle
+    PIIMask --> SafetyRules["⚠️ Industrial Safety & LOTO Interlocks"]:::guardStyle
+    SafetyRules --> GatewayEgress(["Proceed to LLM Gateway"]):::clientStyle
 ```
 
 - **Prompt Injection Defense:** Blocks jailbreak attempts, delimiter hijackings, and system prompt extraction.
@@ -56,14 +56,14 @@ flowchart TD
     classDef gatewayStyle fill:#F0FDF4,stroke:#16A34A,stroke-width:1.5px;
     classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
 
-    GuardrailInput([From Step 1 Guardrails]):::clientStyle --> CacheCheck{SHA-256 Cache Hit?}:::gatewayStyle
-    CacheCheck -- Hit --> FastReturn[⚡ Immediate Cached Response]:::gatewayStyle
-    CacheCheck -- Miss --> RateLimit[⏱️ Sliding-Window & Token-Bucket Rate Limiter]:::gatewayStyle
-    RateLimit --> CircuitBreaker{Circuit Breaker State}:::gatewayStyle
-    CircuitBreaker -- CLOSED / HALF-OPEN --> PrimaryLLM[Groq Qwen 3.8-27B / GPT-OSS 120B]:::gatewayStyle
-    PrimaryLLM -- 429 / Timeout --> FallbackLLM[OpenRouter Multi-Provider Fallback]:::gatewayStyle
-    CircuitBreaker -- OPEN --> FallbackLLM
-    FallbackLLM --> GraphIngress([Proceed to LangGraph Engine]):::clientStyle
+    GuardrailInput(["From Step 1 Guardrails"]):::clientStyle --> CacheCheck{"SHA-256 Cache Hit?"}:::gatewayStyle
+    CacheCheck -- Hit --> FastReturn["⚡ Immediate Cached Response"]:::gatewayStyle
+    CacheCheck -- Miss --> RateLimit["⏱️ Sliding-Window & Token-Bucket Rate Limiter"]:::gatewayStyle
+    RateLimit --> CircuitBreaker{"Circuit Breaker State"}:::gatewayStyle
+    CircuitBreaker -- "CLOSED / HALF-OPEN" --> PrimaryLLM["Groq Qwen 3.8-27B / GPT-OSS 120B"]:::gatewayStyle
+    PrimaryLLM -- "429 / Timeout" --> FallbackLLM["OpenRouter Multi-Provider Fallback"]:::gatewayStyle
+    CircuitBreaker -- "OPEN" --> FallbackLLM
+    FallbackLLM --> GraphIngress(["Proceed to LangGraph Engine"]):::clientStyle
     PrimaryLLM --> GraphIngress
 ```
 
@@ -82,15 +82,15 @@ flowchart TD
     classDef agentStyle fill:#F5F3FF,stroke:#7C3AED,stroke-width:1.5px;
     classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
 
-    GatewayInput([From Step 2 Gateway]):::clientStyle --> IntentRouting[classify_intent]:::agentStyle
-    IntentRouting --> EscalationCheck{Needs Escalation?}:::agentStyle
-    EscalationCheck -- Yes --> FlagEscalation[escalation_check / Priority Ticket]:::agentStyle
-    EscalationCheck -- No --> CompressHistory[compress_history / Context Summary]:::agentStyle
+    GatewayInput(["From Step 2 Gateway"]):::clientStyle --> IntentRouting["classify_intent"]:::agentStyle
+    IntentRouting --> EscalationCheck{"Needs Escalation?"}:::agentStyle
+    EscalationCheck -- Yes --> FlagEscalation["escalation_check / Priority Ticket"]:::agentStyle
+    EscalationCheck -- No --> CompressHistory["compress_history / Context Summary"]:::agentStyle
     FlagEscalation --> CompressHistory
-    CompressHistory --> AgentCore[agent_node / ReAct Reasoner]:::agentStyle
-    AgentCore --> ToolCallDecision{Requires Tool Call?}:::agentStyle
-    ToolCallDecision -- Yes --> ToolDispatch([Step 4: Execute Tools & RAG]):::clientStyle
-    ToolCallDecision -- No --> VerificationStep([Proceed to Step 5: Output Filter]):::clientStyle
+    CompressHistory --> AgentCore["agent_node / ReAct Reasoner"]:::agentStyle
+    AgentCore --> ToolCallDecision{"Requires Tool Call?"}:::agentStyle
+    ToolCallDecision -- Yes --> ToolDispatch(["Step 4: Execute Tools & RAG"]):::clientStyle
+    ToolCallDecision -- No --> VerificationStep(["Proceed to Step 5: Output Filter"]):::clientStyle
 ```
 
 - **Intent Classification:** Rapidly categorizes queries into `technical_support`, `knowledge_query`, `escalation`, or `general`.
@@ -107,18 +107,18 @@ flowchart TD
     classDef toolStyle fill:#FFFBEB,stroke:#D97706,stroke-width:1.5px;
     classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
 
-    ToolCall([Agent Tool Invocation]):::clientStyle --> Dispatcher{Tool Type}:::toolStyle
+    ToolCall(["Agent Tool Invocation"]):::clientStyle --> Dispatcher{"Tool Type"}:::toolStyle
 
-    Dispatcher --> DenseRAG[Dense Vector Search (128-dim)]:::toolStyle
-    Dispatcher --> KeywordRAG[BM25 Keyword Search]:::toolStyle
-    DenseRAG & KeywordRAG --> RRFMerge[Reciprocal Rank Fusion (RRF)]:::toolStyle
+    Dispatcher --> DenseRAG["Dense Vector Search 128-dim"]:::toolStyle
+    Dispatcher --> KeywordRAG["BM25 Keyword Search"]:::toolStyle
+    DenseRAG & KeywordRAG --> RRFMerge["Reciprocal Rank Fusion RRF"]:::toolStyle
 
-    Dispatcher --> WebTools[URL Scraper & DuckDuckGo Search]:::toolStyle
-    Dispatcher --> IndustrialDB[SCADA Telemetry & Equipment Status DB]:::toolStyle
-    Dispatcher --> MCPBridge[MCP External Server Integrations]:::toolStyle
-    Dispatcher --> MediaEngine[Image / Video Generation & Whisper Audio]:::toolStyle
+    Dispatcher --> WebTools["URL Scraper & DuckDuckGo Search"]:::toolStyle
+    Dispatcher --> IndustrialDB["Equipment Telemetry & SOP DB"]:::toolStyle
+    Dispatcher --> MCPBridge["MCP External Server Integrations"]:::toolStyle
+    Dispatcher --> MediaEngine["Image / Video Gen & Whisper Audio"]:::toolStyle
 
-    RRFMerge & WebTools & IndustrialDB & MCPBridge & MediaEngine --> ToolResult([Observation Feedback to Step 3 Agent]):::clientStyle
+    RRFMerge & WebTools & IndustrialDB & MCPBridge & MediaEngine --> ToolResult(["Observation Feedback to Step 3 Agent"]):::clientStyle
 ```
 
 - **Hybrid Dense Retrieval (RRF):** Combines 128-dimensional dense vector embeddings with BM25 keyword matching using Reciprocal Rank Fusion.
@@ -137,11 +137,11 @@ flowchart TD
     classDef guardStyle fill:#FEF2F2,stroke:#EF4444,stroke-width:1.5px;
     classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
 
-    AgentOutput([Agent Final Response]):::clientStyle --> OutputFilter[Output Guardrails & Safety Filter]:::guardStyle
-    OutputFilter --> Checkpointer[(Neon PostgreSQL / Local SQLite WAL)]:::storageStyle
-    OutputFilter --> Audit[(Audit Log & Security Trail)]:::storageStyle
-    OutputFilter --> SSEStream[SSE Token Streaming]:::clientStyle
-    SSEStream --> ClientApp([💬 Interactive Chat & Canvas Artifacts]):::clientStyle
+    AgentOutput(["Agent Final Response"]):::clientStyle --> OutputFilter["Output Guardrails & Safety Filter"]:::guardStyle
+    OutputFilter --> Checkpointer[("Neon PostgreSQL / SQLite WAL Checkpointer")]:::storageStyle
+    OutputFilter --> Audit[("Audit Log & Security Trail")]:::storageStyle
+    OutputFilter --> SSEStream["SSE Token Streaming"]:::clientStyle
+    SSEStream --> ClientApp(["Client Response & Canvas Artifacts"]):::clientStyle
 ```
 
 - **Dual-Engine Checkpointing:** Remote serverless Neon PostgreSQL with automatic local SQLite WAL fallback for zero-downtime persistence.
