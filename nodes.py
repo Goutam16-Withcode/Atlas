@@ -84,7 +84,21 @@ def get_llm_instance(model_type="primary", bind_tools=True):
     api_key = keys[_key_index % len(keys)] if keys else None
 
     if model_type == "vision":
-        # Groq models are text-only; route vision payloads through OpenRouter Qwen-2-VL
+        # First priority: Groq native multimodal vision models
+        if api_key:
+            try:
+                vision_llm = ChatGroq(
+                    model="llama-3.2-11b-vision-preview",
+                    temperature=settings.TEMPERATURE,
+                    api_key=api_key,
+                )
+                if bind_tools:
+                    return vision_llm.bind_tools(_active_tools)
+                return vision_llm
+            except Exception as e:
+                logger.warning(f"Groq native vision init failed, checking OpenRouter fallback: {e}")
+
+        # Second priority: OpenRouter Qwen-2-VL
         openrouter_key = getattr(settings, "OPENROUTER_API_KEY", "")
         if openrouter_key:
             try:
@@ -100,7 +114,7 @@ def get_llm_instance(model_type="primary", bind_tools=True):
                     return base_llm.bind_tools(_active_tools)
                 return base_llm
             except Exception as e:
-                logger.warning(f"OpenRouter vision initialization failed, falling back to primary Groq: {e}")
+                logger.warning(f"OpenRouter vision initialization failed: {e}")
 
     m = settings.MODEL_NAME
     base_llm = ChatGroq(
