@@ -2,13 +2,13 @@
   "benchmark_title": "Atlas 2,500 Real-Life Human Benchmark Evaluation",
   "langsmith_project": "pr-impressionable-duster-1",
   "total_evaluated_samples": 2500,
-  "elapsed_benchmark_seconds": 0.46,
+  "elapsed_benchmark_seconds": 0.27,
   "overall_benchmark_accuracy": "92.00%",
   "latency_metrics_ms": {
     "p50_latency_ms": 0.0,
-    "p95_latency_ms": 0.718,
-    "p99_latency_ms": 2.524,
-    "avg_latency_ms": 0.182
+    "p95_latency_ms": 0.999,
+    "p99_latency_ms": 1.413,
+    "avg_latency_ms": 0.107
   },
   "gateway_cache_metrics": {
     "total_cached_entries": 1070,

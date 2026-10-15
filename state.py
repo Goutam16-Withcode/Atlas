@@ -27,3 +27,14 @@ class ChatState(TypedDict):
     # Resilience bookkeeping
     retry_count: int
     error: Optional[str]
+
+    # Cognitive Engine: Reflection & Self-Correction (Phase 1)
+    critique_history: Optional[list[str]]
+    reflection_passes: Optional[int]
+    verification_passed: Optional[bool]
+    plan_steps: Optional[list[str]]
+
+    # Multi-Agent & Human-in-the-Loop Interlock (Phase 3)
+    active_agent: Optional[str]
+    hitl_pending: Optional[bool]
+    hitl_action_details: Optional[dict]
