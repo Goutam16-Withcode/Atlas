@@ -1687,6 +1687,30 @@ async def mcp_refresh(session_id: Optional[str] = Cookie(None)):
     }
 
 
+@app.get("/gateway/stats")
+def get_gateway_stats():
+    """Return live metrics from the Hybrid Deterministic & Semantic Vector Cache."""
+    from gateway.cache import gateway_cache
+    return {
+        "status": "ok",
+        "version": app.version,
+        "cache_metrics": gateway_cache.get_stats(),
+    }
+
+
+@app.get("/graphrag/{equipment_id}")
+def get_graphrag_equipment(equipment_id: str, query_type: str = "topology"):
+    """Query Plant Entity GraphRAG for topology, failure modes, or incident history."""
+    from engine.graph_rag import plant_graph_rag
+    clean_id = equipment_id.strip().lower()
+    if query_type == "history":
+        return {"equipment_id": clean_id, "incidents": plant_graph_rag.get_incident_history(clean_id)}
+    subgraph = plant_graph_rag.get_asset_subgraph(clean_id)
+    if not subgraph:
+        raise HTTPException(status_code=404, detail=f"Equipment '{equipment_id}' not found in Plant Graph.")
+    return {"equipment_id": clean_id, "graph": subgraph}
+
+
 # --------------------------------------------------------------------------- #
 # UI & health
 # --------------------------------------------------------------------------- #
