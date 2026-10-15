@@ -594,32 +594,66 @@ def manage_task_todo(action: str, task_name: str, priority: str = "medium") -> s
 @tool
 def execute_python_code(code_string: str) -> str:
     """Execute a python code block to perform complex numerical computations, data formatting, or custom calculations.
-    For safety, it executes in a restricted environment and blocks access to os, sys, subprocess, and network modules."""
-    blocked = ["os", "sys", "subprocess", "requests", "socket", "urllib", "eval", "exec", "open", "builtins", "__import__"]
+    Runs inside a secure scientific sandbox preloaded with numpy, scipy, math, statistics, and datetime.
+    Blocks dangerous os, sys, subprocess, and network modules for safety."""
+    blocked = ["os.", "sys.", "subprocess", "socket", "urllib", "eval(", "exec(", "open(", "builtins", "__import__", "shutil"]
     for word in blocked:
-        if re.search(r"\b" + word + r"\b", code_string):
-            return f"Error: Execution of code containing '{word}' is blocked for safety."
-            
+        if word in code_string:
+            return f"Error: Execution of code containing '{word}' is blocked for sandbox safety."
+
     import sys
     import io
-    
-    local_vars = {"math": math, "datetime": datetime}
+    import statistics
+    import json
+    try:
+        import numpy as np
+    except ImportError:
+        np = None
+    try:
+        import scipy
+    except ImportError:
+        scipy = None
+
+    t0 = time.time()
+    local_vars = {
+        "math": math,
+        "datetime": datetime,
+        "statistics": statistics,
+        "json": json,
+        "np": np,
+        "numpy": np,
+        "scipy": scipy,
+    }
+
     old_stdout = sys.stdout
     redirected_output = sys.stdout = io.StringIO()
     try:
-        compiled = compile(code_string, "<string>", "exec")
-        exec(compiled, {"__builtins__": {}}, local_vars)
+        compiled = compile(code_string, "<sandbox_exec>", "exec")
+        # Run in restricted builtins
+        exec(compiled, {"__builtins__": {
+            "range": range, "len": len, "sum": sum, "min": min, "max": max,
+            "abs": abs, "round": round, "enumerate": enumerate, "zip": zip,
+            "int": int, "float": float, "str": str, "bool": bool, "list": list,
+            "dict": dict, "set": set, "tuple": tuple, "print": print, "sorted": sorted,
+        }}, local_vars)
         sys.stdout = old_stdout
+        elapsed_ms = round((time.time() - t0) * 1000, 2)
         output = redirected_output.getvalue()
+
         if not output.strip():
-            ret_vals = {k: v for k, v in local_vars.items() if k not in ("math", "datetime")}
+            ret_vals = {
+                k: (str(v) if len(str(v)) < 200 else f"{str(v)[:200]}...")
+                for k, v in local_vars.items()
+                if k not in ("math", "datetime", "statistics", "json", "np", "numpy", "scipy")
+            }
             if ret_vals:
-                return f"Execution successful. Variable states:\n{ret_vals}"
-            return "Execution successful. No output was printed."
-        return output.strip()
+                return f"[Sandbox Execution OK ({elapsed_ms}ms)] Variable states:\n{json.dumps(ret_vals, indent=2, default=str)}"
+            return f"[Sandbox Execution OK ({elapsed_ms}ms)] No output printed."
+
+        return f"[Sandbox Execution OK ({elapsed_ms}ms)]\n{output.strip()}"
     except Exception as e:
         sys.stdout = old_stdout
-        return f"Execution failed: {str(e)}"
+        return f"[Sandbox Execution Error]: {str(e)}"
 
 
 @tool
