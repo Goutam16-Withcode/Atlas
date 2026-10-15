@@ -30,8 +30,10 @@ from nodes import (
     agent_node,
     tool_node,
     escalation_check,
+    verifier_node,
     route_after_agent,
     route_after_intent,
+    route_after_verifier,
 )
 from config import settings
 from logger import get_logger
@@ -47,6 +49,7 @@ def build_graph(checkpointer=None):
     graph.add_node("compress_history", compress_history)
     graph.add_node("agent_node", agent_node)
     graph.add_node("tools", tool_node)
+    graph.add_node("verifier_node", verifier_node)
 
     graph.add_edge(START, "classify_intent")
 
@@ -61,9 +64,15 @@ def build_graph(checkpointer=None):
     graph.add_conditional_edges(
         "agent_node",
         route_after_agent,
-        {"tools": "tools", "end": END},
+        {"tools": "tools", "verifier_node": "verifier_node"},
     )
     graph.add_edge("tools", "agent_node")
+
+    graph.add_conditional_edges(
+        "verifier_node",
+        route_after_verifier,
+        {"agent_node": "agent_node", "end": END},
+    )
 
     if checkpointer is None:
         from db.remote_db import db_manager

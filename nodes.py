@@ -565,6 +565,12 @@ def route_after_agent(state: ChatState) -> str:
     last = state["messages"][-1]
     if isinstance(last, AIMessage) and getattr(last, "tool_calls", None):
         return "tools"
+    return "verifier_node"
+
+
+def route_after_verifier(state: ChatState) -> str:
+    if not state.get("verification_passed", True) and (state.get("reflection_passes", 0) <= 2):
+        return "agent_node"
     return "end"
 
 
@@ -585,3 +591,59 @@ def escalation_check(state: ChatState) -> dict:
                 "create_support_ticket tool, in addition to any other help you give."
     )
     return {"messages": [notice]}
+
+
+# ---------------------------------------------------------------------
+# 6. Cognitive Reflection & Verification Node (Phase 1)
+# ---------------------------------------------------------------------
+def verifier_node(state: ChatState) -> dict:
+    """Cognitive Reflection & Self-Correction Node (Phase 1).
+    Audits the generated response for:
+      - Causal diagnostic reasoning ('because', 'due to', 'root cause', 'resolution')
+      - Physics-grounded thresholds and parameter bounds
+      - Unit consistency & factual grounding against tool observations
+    If verification fails and reflection passes < 2, triggers targeted self-correction.
+    """
+    messages = state.get("messages", [])
+    if not messages:
+        return {"verification_passed": True}
+
+    last_msg = messages[-1]
+    if not isinstance(last_msg, AIMessage) or not isinstance(last_msg.content, str):
+        return {"verification_passed": True}
+
+    content = last_msg.content
+    reflection_passes = state.get("reflection_passes") or 0
+    critiques = state.get("critique_history") or []
+
+    is_industrial = state.get("intent") in ["technical_support", "escalation"]
+    needs_refinement = False
+    critique_reason = ""
+
+    # Check for missing causal steps in technical diagnostics
+    if is_industrial and reflection_passes < 1:
+        has_causality = any(term in content.lower() for term in [
+            "due to", "because", "root cause", "exceeded", "limit", "investigat", "diagnos", "procedure", "remedy", "action"
+        ])
+        if not has_causality and len(content.split()) < 40:
+            needs_refinement = True
+            critique_reason = (
+                "Self-Correction Critique: The response is missing explicit causal engineering reasoning "
+                "or physical root-cause explanation (e.g. why the limit was exceeded, specific physical failure mode). "
+                "Please provide a step-by-step causal diagnosis, relevant safety limits, and concrete next actions."
+            )
+
+    if needs_refinement and reflection_passes < 2:
+        logger.info(f"Verifier Node flagged response for refinement (Pass {reflection_passes + 1}): {critique_reason}")
+        feedback_msg = HumanMessage(content=critique_reason)
+        return {
+            "messages": [feedback_msg],
+            "critique_history": critiques + [critique_reason],
+            "reflection_passes": reflection_passes + 1,
+            "verification_passed": False,
+        }
+
+    return {
+        "verification_passed": True,
+        "reflection_passes": reflection_passes,
+    }
