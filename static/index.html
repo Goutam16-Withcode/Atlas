@@ -2445,6 +2445,7 @@
     }
 
     parseAndRenderCharts(contentArea);
+    parseAndRenderSCADA(contentArea);
 
     const listenBtn = row.querySelector('.read-aloud');
     if (listenBtn) {
@@ -2482,20 +2483,59 @@
           labels: labels,
           datasets: [{
             label: title, data: data,
-            borderColor: '#C2643F',
-            backgroundColor: 'rgba(194, 100, 63, 0.12)',
+            borderColor: '#4F46E5',
+            backgroundColor: 'rgba(79, 70, 229, 0.12)',
             borderWidth: 2, tension: 0.3, fill: true
           }]
         },
         options: {
           responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#28221A' } } },
+          plugins: { legend: { labels: { color: '#0F172A' } } },
           scales: {
-            x: { grid: { color: 'rgba(31,27,22,0.06)' }, ticks: { color: '#7C7264' } },
-            y: { grid: { color: 'rgba(31,27,22,0.06)' }, ticks: { color: '#7C7264' } }
+            x: { grid: { color: 'rgba(15,23,42,0.06)' }, ticks: { color: '#64748B' } },
+            y: { grid: { color: 'rgba(15,23,42,0.06)' }, ticks: { color: '#64748B' } }
           }
         }
       });
+    });
+  }
+
+  function parseAndRenderSCADA(container) {
+    const gauges = container.querySelectorAll('scada-gauge');
+    gauges.forEach(gauge => {
+      const label = gauge.getAttribute('label') || 'Telemetry Gauge';
+      const val = parseFloat(gauge.getAttribute('value') || '0');
+      const min = parseFloat(gauge.getAttribute('min') || '0');
+      const max = parseFloat(gauge.getAttribute('max') || '100');
+      const unit = gauge.getAttribute('unit') || '';
+      const status = (gauge.getAttribute('status') || 'nominal').toLowerCase();
+
+      const pct = Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
+      const angle = -90 + (pct * 1.8);
+      const color = status === 'critical' ? '#EF4444' : (status === 'warning' ? '#F59E0B' : '#10B981');
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'scada-gauge-card';
+      wrapper.style.cssText = 'display:inline-flex;flex-direction:column;align-items:center;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:14px;padding:14px 18px;margin:8px 8px 8px 0;box-shadow:0 2px 6px rgba(15,23,42,0.04);min-width:180px;';
+      wrapper.innerHTML = `
+        <div style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">${escapeHTML(label)}</div>
+        <div style="position:relative;width:120px;height:70px;overflow:hidden;">
+          <svg viewBox="0 0 120 70" width="120" height="70" style="overflow:visible;">
+            <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="#E2E8F0" stroke-width="10" stroke-linecap="round"/>
+            <path d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke="${color}" stroke-width="10" stroke-dasharray="157" stroke-dashoffset="${157 - (157 * pct / 100)}" stroke-linecap="round"/>
+            <g transform="translate(60, 65) rotate(${angle})">
+              <line x1="0" y1="0" x2="0" y2="-44" stroke="#0F172A" stroke-width="2.5" stroke-linecap="round"/>
+              <circle cx="0" cy="0" r="4" fill="#0F172A"/>
+            </g>
+          </svg>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px;">
+          <span style="font-size:20px;font-weight:700;color:#0F172A;font-family:var(--font-display);">${val}</span>
+          <span style="font-size:12px;font-weight:600;color:#64748B;">${escapeHTML(unit)}</span>
+        </div>
+        <div style="margin-top:6px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${color}15;color:${color};text-transform:uppercase;">${status}</div>
+      `;
+      gauge.parentNode.replaceChild(wrapper, gauge);
     });
   }
 
