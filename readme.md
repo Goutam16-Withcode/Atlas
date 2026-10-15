@@ -104,6 +104,7 @@ The multi-turn conversational core manages intent detection, token conservation,
 flowchart TD
     classDef agentStyle fill:#F5F3FF,stroke:#7C3AED,stroke-width:1.5px;
     classDef clientStyle fill:#EEF2FF,stroke:#4F46E5,stroke-width:1.5px;
+    classDef verifyStyle fill:#FEF2F2,stroke:#EF4444,stroke-width:1.5px;
 
     GatewayInput(["From Step 2 Gateway"]):::clientStyle --> IntentRouting["classify_intent"]:::agentStyle
     IntentRouting --> EscalationCheck{"Needs Escalation?"}:::agentStyle
@@ -113,12 +114,15 @@ flowchart TD
     CompressHistory --> AgentCore["agent_node / ReAct Reasoner"]:::agentStyle
     AgentCore --> ToolCallDecision{"Requires Tool Call?"}:::agentStyle
     ToolCallDecision -- Yes --> ToolDispatch(["Step 4: Execute Tools & RAG"]):::clientStyle
-    ToolCallDecision -- No --> VerificationStep(["Proceed to Step 5: Output Filter"]):::clientStyle
+    ToolCallDecision -- No --> VerifierNode{"verifier_node / Reflection Verifier"}:::verifyStyle
+    VerifierNode -- "Critique / Refine" --> AgentCore
+    VerifierNode -- "Passed (≥0.95)" --> VerificationStep(["Proceed to Step 5: Output Filter"]):::clientStyle
 ```
 
 - **Intent Classification:** Rapidly categorizes queries into `technical_support`, `knowledge_query`, `escalation`, or `general`.
 - **Dynamic Context Compression:** Automatically summarizes conversations beyond 12 turns, preventing token overflow while preserving critical IDs and state.
 - **ReAct Feedback Loop:** Interleaves reasoning thoughts, tool calls, and observation results until the task is completely resolved.
+- **Cognitive Reflection & Self-Correction (`verifier_node`):** Audits draft responses for physical parameter bounds, thermodynamic plausibility, and causal root causes before releasing to the user.
 
 ---
 
