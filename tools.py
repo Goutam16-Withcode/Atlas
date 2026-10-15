@@ -759,10 +759,40 @@ def fetch_webpage_content(url: str) -> str:
         return f"Failed to fetch webpage content from {clean_url}: {str(e)}"
 
 
+@tool
+def query_plant_graph_rag(equipment_id: str, query_type: str = "topology", symptom: str = "") -> str:
+    """Query the Plant Entity Knowledge Graph and Incident Memory (GraphRAG).
+    query_type can be:
+      - 'topology': Returns equipment subsystem components, operating limits, and linked SOPs.
+      - 'diagnose': Traverses failure mode subgraphs to find candidate physical mechanisms and mitigations for a given symptom.
+      - 'history': Retrieves past failure incidents, maintenance actions, and recurring root causes.
+    """
+    from engine.graph_rag import plant_graph_rag
+    import json
+
+    clean_id = equipment_id.strip().lower()
+    if query_type == "diagnose":
+        candidates = plant_graph_rag.diagnose_symptom(clean_id, symptom or "anomaly")
+        if not candidates:
+            return f"No specific failure modes matched for '{equipment_id}' with symptom '{symptom}'."
+        return f"GraphRAG Diagnosis for {equipment_id}:\n" + json.dumps(candidates, indent=2)
+    elif query_type == "history":
+        history = plant_graph_rag.get_incident_history(clean_id)
+        if not history:
+            return f"No prior incident records found for '{equipment_id}'."
+        return f"GraphRAG Incident History for {equipment_id}:\n" + json.dumps(history, indent=2)
+    else:
+        subgraph = plant_graph_rag.get_asset_subgraph(clean_id)
+        if not subgraph:
+            return f"Asset '{equipment_id}' not found in Plant Graph."
+        return f"GraphRAG Topology for {equipment_id}:\n" + json.dumps(subgraph, indent=2)
+
+
 ALL_TOOLS = [
     calculator,
     check_equipment_status,
     search_knowledge_base,
+    query_plant_graph_rag,
     generate_image_asset,
     generate_video_asset,
     create_support_ticket,

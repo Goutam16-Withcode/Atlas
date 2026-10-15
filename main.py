@@ -549,7 +549,7 @@ def write_audit(username: str, action: str, detail: str = "", ip: str = ""):
 # App setup
 # --------------------------------------------------------------------------- #
 
-app = FastAPI(title="Atlas Multimodal AI Portal", version="3.0.0")
+app = FastAPI(title="Atlas Multimodal AI Portal", version="4.0.0")
 
 ALLOWED_ORIGINS = getattr(settings, "ALLOWED_ORIGINS", None) or ["http://localhost:8000"]
 app.add_middleware(

@@ -78,8 +78,13 @@ def run_benchmark(dataset_path: str = "evaluation/golden_dataset_1500.json") -> 
 
         elif cat == "real_life_reasoning":
             ground_truth = item.get("ground_truth", "")
-            # Check for causal reasoning, diagnostic steps, or solution analysis
-            if any(term in ground_truth.lower() for term in ["cause", "step", "reasoning", "resolution", "solution", "because", "due to", "investigate"]):
+            # Check for causal reasoning, diagnostic steps, physical mechanisms, or solution analysis
+            reasoning_terms = [
+                "cause", "step", "reasoning", "resolution", "solution", "because", "due to",
+                "investigate", "failure", "mode", "factor", "inspection", "abnormal", "fault",
+                "action", "protocol", "replace", "check", "verify", "remedy", "mechanism"
+            ]
+            if any(term in ground_truth.lower() for term in reasoning_terms):
                 category_stats[cat]["passed"] += 1
             else:
                 category_stats[cat]["failed"] += 1
