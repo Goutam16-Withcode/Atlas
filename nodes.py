@@ -248,6 +248,25 @@ Example:
 Ensure labels match the timeline and values are numeric.
 
 ═══════════════════════════════════════
+INTERACTIVE SCADA GAUGES
+═══════════════════════════════════════
+When reporting live industrial sensor telemetry (e.g. pressure, temperature, flow rate, vibration, tension), format the primary sensor reading as an interactive `<scada-gauge>` custom element alongside your findings:
+Format:
+<scada-gauge label="Hydraulic Pressure" value="2850" min="0" max="3500" unit="PSI" status="nominal|warning|critical"></scada-gauge>
+
+═══════════════════════════════════════
+ACTIONABLE SOP CHECKLISTS
+═══════════════════════════════════════
+When presenting maintenance protocols, SOP procedures, troubleshooting sequences, or safety steps, format the concrete actions as an interactive `<checklist>`:
+Format:
+<checklist title="Hydraulic Press Seal Maintenance SOP">
+  <item>Isolate main 480V electrical disconnect and apply LOTO padlock</item>
+  <item>Depressurize secondary accumulator lines to 0 PSI</item>
+  <item>Inspect chevron packing seals on cylinder ram CYL-01</item>
+  <item>Verify torque on relief valve RV-102 flange bolts</item>
+</checklist>
+
+═══════════════════════════════════════
 INTERACTIVE PRESENTATIONS & RESEARCH POSTERS
 ═══════════════════════════════════════
 When the user asks to generate, design, or build a presentation, slide deck, or research poster:

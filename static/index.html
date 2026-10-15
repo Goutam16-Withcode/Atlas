@@ -2654,6 +2654,9 @@
 
     parseAndRenderCharts(contentArea);
     parseAndRenderSCADA(contentArea);
+    parseAndRenderVoiceMemos(contentArea);
+    parseAndRenderVisionCards(contentArea);
+    parseAndRenderChecklists(contentArea);
 
     const listenBtn = row.querySelector('.read-aloud');
     if (listenBtn) {
@@ -2744,6 +2747,157 @@
         <div style="margin-top:6px;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:${color}15;color:${color};text-transform:uppercase;">${status}</div>
       `;
       gauge.parentNode.replaceChild(wrapper, gauge);
+    });
+  }
+
+  function parseAndRenderVoiceMemos(container) {
+    const memos = container.querySelectorAll('voice-memo');
+    memos.forEach(memo => {
+      const src = memo.getAttribute('src') || '';
+      const duration = memo.getAttribute('duration') || '0:04';
+      const transcript = memo.getAttribute('transcript') || memo.textContent.trim() || 'Audio voice note captured.';
+
+      const card = document.createElement('div');
+      card.className = 'voice-memo-card';
+      card.innerHTML = `
+        <div class="voice-memo-header">
+          <span class="voice-memo-pill"><i data-lucide="mic" style="width:12px;height:12px;"></i> Voice Note</span>
+          <span style="font-size:11px;color:var(--text-muted);font-weight:600;">${escapeHTML(duration)}</span>
+        </div>
+        <div class="voice-memo-body">
+          <button type="button" class="voice-memo-play-btn" title="Play Voice Memo">
+            <i data-lucide="play" style="width:16px;height:16px;margin-left:2px;"></i>
+          </button>
+          <div class="voice-memo-waveform">
+            ${[12, 22, 16, 28, 14, 26, 18, 10, 24, 15, 20, 26, 14, 8, 22, 18, 28, 12, 16, 24, 14, 18, 26, 10]
+              .map(h => `<div class="voice-wave-bar" style="height:${h}px;"></div>`).join('')}
+          </div>
+        </div>
+        <div class="voice-memo-transcript">${escapeHTML(transcript)}</div>
+      `;
+
+      const playBtn = card.querySelector('.voice-memo-play-btn');
+      let audioObj = null;
+      if (src) audioObj = new Audio(src);
+
+      playBtn.addEventListener('click', () => {
+        const isPlaying = card.classList.contains('playing');
+        if (isPlaying) {
+          card.classList.remove('playing');
+          playBtn.innerHTML = '<i data-lucide="play" style="width:16px;height:16px;margin-left:2px;"></i>';
+          if (audioObj) audioObj.pause();
+        } else {
+          card.classList.add('playing');
+          playBtn.innerHTML = '<i data-lucide="pause" style="width:16px;height:16px;"></i>';
+          if (audioObj) {
+            audioObj.play();
+            audioObj.onended = () => {
+              card.classList.remove('playing');
+              playBtn.innerHTML = '<i data-lucide="play" style="width:16px;height:16px;margin-left:2px;"></i>';
+              lucide.createIcons();
+            };
+          } else {
+            setTimeout(() => {
+              card.classList.remove('playing');
+              playBtn.innerHTML = '<i data-lucide="play" style="width:16px;height:16px;margin-left:2px;"></i>';
+              lucide.createIcons();
+            }, 3000);
+          }
+        }
+        lucide.createIcons();
+      });
+
+      memo.parentNode.replaceChild(card, memo);
+    });
+  }
+
+  function parseAndRenderVisionCards(container) {
+    const cards = container.querySelectorAll('vision-card');
+    cards.forEach(vc => {
+      const src = vc.getAttribute('src') || '';
+      const title = vc.getAttribute('title') || 'Visual Inspection';
+      const status = (vc.getAttribute('status') || 'verified').toLowerCase();
+      const resolution = vc.getAttribute('resolution') || '1024x768';
+      const focus = vc.getAttribute('focus') || 'equipment_anomaly';
+
+      const color = status === 'critical' ? '#EF4444' : (status === 'warning' ? '#F59E0B' : '#10B981');
+
+      const card = document.createElement('div');
+      card.className = 'vision-inspect-card';
+      card.innerHTML = `
+        <div class="vision-thumb-box" title="Click to view full inspection">
+          <img src="${escapeHTML(src)}" alt="Inspection target" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'40\\' height=\\'40\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'%2394A3B8\\' stroke-width=\\'2\\'><rect width=\\'18\\' height=\\'18\\' x=\\'3\\' y=\\'3\\' rx=\\'2\\'/><circle cx=\\'9\\' cy=\\'9\\' r=\\'2\\'/><path d=\\'m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21\\'/></svg>'">
+        </div>
+        <div class="vision-meta-box">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div class="vision-title">${escapeHTML(title)}</div>
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${color}15;color:${color};text-transform:uppercase;">${status}</span>
+          </div>
+          <div class="vision-tag-row">
+            <span class="vision-tag"><i data-lucide="maximize" style="width:10px;height:10px;display:inline;"></i> ${escapeHTML(resolution)}</span>
+            <span class="vision-tag"><i data-lucide="crosshair" style="width:10px;height:10px;display:inline;"></i> ${escapeHTML(focus)}</span>
+          </div>
+          <button type="button" class="btn-message-control" style="align-self:flex-start;margin-top:4px;" onclick="openCanvasPanel('<img src=\\'${escapeHTML(src)}\\' style=\\'width:100%;height:auto;border-radius:12px;\\'/>', '${escapeHTML(title)}', true)">
+            <i data-lucide="eye" style="width:12px;height:12px;"></i> Inspect in Canvas
+          </button>
+        </div>
+      `;
+      vc.parentNode.replaceChild(card, vc);
+    });
+  }
+
+  function parseAndRenderChecklists(container) {
+    const checklists = container.querySelectorAll('checklist');
+    checklists.forEach(cl => {
+      const title = cl.getAttribute('title') || 'Standard Operating Procedure Checklist';
+      const items = Array.from(cl.querySelectorAll('item')).map(it => it.textContent.trim());
+
+      const card = document.createElement('div');
+      card.className = 'action-checklist-card';
+
+      let itemsHTML = items.map((itemText, idx) => `
+        <div class="checklist-item" data-idx="${idx}">
+          <input type="checkbox" class="checklist-checkbox" id="cl-chk-${idx}">
+          <label for="cl-chk-${idx}" style="cursor:pointer;flex-grow:1;">${escapeHTML(itemText)}</label>
+        </div>
+      `).join('');
+
+      card.innerHTML = `
+        <div class="checklist-header">
+          <div class="checklist-title">
+            <i data-lucide="clipboard-check" style="width:16px;height:16px;color:var(--accent-primary);"></i>
+            ${escapeHTML(title)}
+          </div>
+          <span class="checklist-counter" style="font-size:11px;font-weight:700;color:var(--accent-primary);">0 / ${items.length} Completed</span>
+        </div>
+        <div class="checklist-progress-bar-bg">
+          <div class="checklist-progress-bar-fill"></div>
+        </div>
+        <div class="checklist-items-container">
+          ${itemsHTML}
+        </div>
+      `;
+
+      const fill = card.querySelector('.checklist-progress-bar-fill');
+      const counter = card.querySelector('.checklist-counter');
+      const checkboxes = card.querySelectorAll('.checklist-checkbox');
+
+      checkboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+          const itemEl = cb.closest('.checklist-item');
+          if (cb.checked) {
+            itemEl.classList.add('completed');
+          } else {
+            itemEl.classList.remove('completed');
+          }
+          const checkedCount = card.querySelectorAll('.checklist-checkbox:checked').length;
+          const pct = Math.round((checkedCount / items.length) * 100);
+          fill.style.width = `${pct}%`;
+          counter.textContent = `${checkedCount} / ${items.length} Completed (${pct}%)`;
+        });
+      });
+
+      cl.parentNode.replaceChild(card, cl);
     });
   }
 
