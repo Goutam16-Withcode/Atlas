@@ -116,10 +116,21 @@ def get_llm_instance(model_type="primary", bind_tools=True):
             except Exception as e:
                 logger.warning(f"OpenRouter vision initialization failed: {e}")
 
+    if model_type == "fast":
+        fast_llm = ChatGroq(
+            model="llama-3.1-8b-instant",
+            temperature=0.3,
+            api_key=api_key or None,
+        )
+        if bind_tools:
+            return fast_llm.bind_tools(_active_tools)
+        return fast_llm
+
     m = settings.MODEL_NAME
+    temp = 0.1 if model_type == "reasoning" else settings.TEMPERATURE
     base_llm = ChatGroq(
         model=m,
-        temperature=settings.TEMPERATURE,
+        temperature=temp,
         api_key=api_key or None,
     )
     if bind_tools:
@@ -489,7 +500,15 @@ def agent_node(state: ChatState, config: RunnableConfig = None) -> dict:
             blocked_msg = AIMessage(content=f"🚫 {guard_in.rejection_reason}")
             return {"messages": [blocked_msg], "retry_count": 0, "error": guard_in.rejection_reason}
 
-    active_type = "vision" if has_image else "primary"
+    model_mode = config.get("configurable", {}).get("model_mode", "auto") if config else "auto"
+    if has_image:
+        active_type = "vision"
+    elif model_mode == "fast":
+        active_type = "fast"
+    elif model_mode == "reasoning":
+        active_type = "reasoning"
+    else:
+        active_type = "primary"
     active_llm = get_llm_instance(active_type)
 
     retries = 0

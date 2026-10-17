@@ -1083,6 +1083,21 @@ def build_human_message(req: ChatRequest):
     if transcriptions:
         text_content = (text_content + "\n\n" + "\n".join(transcriptions)).strip()
 
+    if getattr(req, "web_search", False):
+        text_content = (
+            "[INSTRUCTION: Live Web Search is ENABLED by the user. "
+            "Use the search_web or fetch_webpage_content tools to gather verified current information before giving your final answer.]\n\n"
+            + text_content
+        )
+
+    if getattr(req, "model_mode", None) == "reasoning":
+        text_content = (
+            "[INSTRUCTION: DEEP REASONING & REFLECTION MODE ENABLED. "
+            "Think through the query with rigorous step-by-step logic, audit physical assumptions, "
+            "and clearly verify each step before formulating your final conclusions.]\n\n"
+            + text_content
+        )
+
     # Guarantee non-empty prompt instruction so LLM APIs don't reject the payload
     if not text_content:
         text_content = "Please analyze the attached image/document in detail, explain its key elements, and summarize any notable findings."
@@ -1115,11 +1130,13 @@ def chat(req: ChatRequest, request: Request, session_id: Optional[str] = Cookie(
             "thread_id": req.thread_id,
             "username": username,
             "language": req.language or "auto",
+            "model_mode": req.model_mode or "auto",
         },
         "metadata": {
             "username": username,
             "thread_id": req.thread_id,
             "language": req.language or "auto",
+            "model_mode": req.model_mode or "auto",
             "interface": "web"
         }
     }
@@ -1162,11 +1179,13 @@ def chat_stream(req: ChatRequest, request: Request, session_id: Optional[str] = 
             "thread_id": req.thread_id,
             "username": username,
             "language": req.language or "auto",
+            "model_mode": req.model_mode or "auto",
         },
         "metadata": {
             "username": username,
             "thread_id": req.thread_id,
             "language": req.language or "auto",
+            "model_mode": req.model_mode or "auto",
             "interface": "web"
         }
     }
