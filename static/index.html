@@ -3828,6 +3828,9 @@
       listenBtn.parentNode.replaceChild(newListenBtn, listenBtn);
       newListenBtn.addEventListener('click', () => toggleReadAloud(content, newListenBtn));
     }
+    if (isVoiceModeActive && content) {
+      speakInVoiceMode(content);
+    }
     lucide.createIcons();
   }
 
