@@ -1775,6 +1775,34 @@
           <button class="btn-toggle-sidebar" id="btn-expand-sidebar" title="Expand sidebar" style="display:none;">
             <i data-lucide="panel-left-open" style="width:17px;height:17px;"></i>
           </button>
+
+          <!-- ChatGPT Model Selector Dropdown -->
+          <div class="model-picker-dropdown" id="model-picker-dropdown">
+            <button type="button" class="btn-model-selector" id="btn-model-selector">
+              <span class="reasoning-sparkle">✦</span>
+              <span id="selected-model-name">Atlas 4.0</span>
+              <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+            </button>
+            <div class="model-menu" id="model-menu">
+              <div class="model-option active" data-model="auto">
+                <div class="model-opt-title">Atlas 4.0 Auto</div>
+                <div class="model-opt-desc">Autonomous multi-agent routing & tools</div>
+              </div>
+              <div class="model-option" data-model="fast">
+                <div class="model-opt-title">Atlas Fast (Groq 8B)</div>
+                <div class="model-opt-desc">Sub-second low latency inference</div>
+              </div>
+              <div class="model-option" data-model="reasoning">
+                <div class="model-opt-title">Atlas Deep Reasoning</div>
+                <div class="model-opt-desc">Step-by-step reflection & physical verification</div>
+              </div>
+              <div class="model-option" data-model="vision">
+                <div class="model-opt-title">Atlas Multimodal Vision</div>
+                <div class="model-opt-desc">Inspect diagrams, OCR & telemetry</div>
+              </div>
+            </div>
+          </div>
+
           <div class="header-chat-title" id="header-chat-title" title="Rename thread">
             <span id="current-thread-title">New chat</span>
             <i data-lucide="edit-3" style="width:13px;height:13px;color:var(--text-muted);"></i>
@@ -1786,6 +1814,11 @@
         <span id="val-escalation" style="display:none;">false</span>
 
         <div class="header-right">
+          <!-- ChatGPT Theme Toggle -->
+          <button class="btn-toggle-sidebar" id="btn-toggle-theme" title="Toggle Dark/Light Mode" style="border-radius:50%; margin-right:4px;">
+            <i data-lucide="moon" id="theme-toggle-icon" style="width:15px;height:15px;"></i>
+          </button>
+
           <div class="lang-selector-container">
             <i data-lucide="languages" style="width:14px;height:14px;color:var(--accent-primary);"></i>
             <select id="select-lang" style="background:transparent;border:none;color:var(--text-main);font-size:.8rem;cursor:pointer;outline:none;padding-right:2px;font-family:var(--font-body);">
@@ -1825,8 +1858,8 @@
             <div class="attachment-preview-bar" id="attachment-preview-bar" style="display:none;"></div>
 
             <div class="composer-input-row">
-              <button class="btn-attachment-upload" type="button" id="btn-upload-file" title="Upload media (image, audio, video)">
-                <i data-lucide="paperclip" style="width:17px;height:17px;"></i>
+              <button class="btn-attachment-upload" type="button" id="btn-upload-file" title="Upload media (image, audio, video, PDF)">
+                <i data-lucide="plus" style="width:17px;height:17px;"></i>
               </button>
               <input type="file" id="hidden-file-input" style="display:none;" accept="image/*,audio/*,video/*,application/pdf,.pdf">
 
@@ -1837,11 +1870,24 @@
               </button>
 
               <button class="btn-send" id="btn-send-message" type="submit" disabled title="Send message">
-                <i data-lucide="arrow-up" style="width:17px;height:17px;"></i>
+                <i data-lucide="arrow-up" id="send-button-icon" style="width:17px;height:17px;"></i>
+              </button>
+            </div>
+
+            <!-- ChatGPT Composer Feature Pills -->
+            <div class="composer-pill-row">
+              <button type="button" class="composer-pill-btn" id="btn-toggle-websearch" title="Search web for real-time data">
+                <i data-lucide="globe" style="width:13px;height:13px;"></i>
+                <span>Search</span>
+              </button>
+              <button type="button" class="composer-pill-btn" id="btn-toggle-reasoning" title="Enable deep reasoning reflection loop">
+                <i data-lucide="brain" style="width:13px;height:13px;"></i>
+                <span>Reason</span>
               </button>
             </div>
           </form>
         </div>
+        <div class="composer-disclaimer">Atlas can make mistakes. Verify important technical info.</div>
       </section>
     </main>
 
