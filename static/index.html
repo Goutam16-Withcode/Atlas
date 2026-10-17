@@ -4253,12 +4253,58 @@
     }
   }
 
+  // Persona tuning configuration matching ChatGPT voices
+  function getVoicePersonaSettings(persona) {
+    switch (persona) {
+      case 'echo': return { pitch: 0.85, rate: 0.95, preferMale: true };
+      case 'nova': return { pitch: 1.15, rate: 1.05, preferMale: false };
+      case 'onyx': return { pitch: 0.72, rate: 0.90, preferMale: true };
+      case 'shimmer': return { pitch: 1.10, rate: 1.00, preferMale: false };
+      case 'alloy':
+      default: return { pitch: 1.0, rate: 1.0, preferMale: false };
+    }
+  }
+
+  function getAvailableSpeechVoice(persona) {
+    if (!window.speechSynthesis) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    const p = getVoicePersonaSettings(persona);
+    const selectLang = document.getElementById('select-lang')?.value || 'en';
+    const langPrefix = selectLang === 'auto' ? 'en' : selectLang;
+
+    const langVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(langPrefix));
+    const pool = langVoices.length > 0 ? langVoices : voices;
+
+    if (p.preferMale) {
+      const maleVoice = pool.find(v => /male|david|george|daniel|guy|alex/i.test(v.name));
+      if (maleVoice) return maleVoice;
+    } else {
+      const femaleVoice = pool.find(v => /female|zira|samantha|victoria|karen|susan/i.test(v.name));
+      if (femaleVoice) return femaleVoice;
+    }
+    return pool[0];
+  }
+
   function updateReadAloudButtonUI(btn, speaking) {
     if (!btn) return;
     btn.dataset.speaking = speaking ? 'true' : 'false';
     btn.style.color = speaking ? 'var(--accent-primary)' : '';
     const span = btn.querySelector('span');
     if (span) span.textContent = speaking ? 'Stop' : 'Listen';
+
+    let eq = btn.querySelector('.sound-equalizer');
+    if (speaking) {
+      if (!eq) {
+        eq = document.createElement('div');
+        eq.className = 'sound-equalizer';
+        eq.innerHTML = '<span></span><span></span><span></span><span></span>';
+        btn.appendChild(eq);
+      }
+    } else {
+      if (eq) eq.remove();
+    }
 
     const existingIcon = btn.querySelector('i, svg');
     if (existingIcon) {
@@ -4285,6 +4331,13 @@
 
     if (!window.SpeechSynthesisUtterance) return;
     currentSpeechUtterance = new SpeechSynthesisUtterance(cleanText);
+
+    const persona = selectedVoicePersona || 'alloy';
+    const settings = getVoicePersonaSettings(persona);
+    currentSpeechUtterance.pitch = settings.pitch;
+    currentSpeechUtterance.rate = settings.rate;
+    const voice = getAvailableSpeechVoice(persona);
+    if (voice) currentSpeechUtterance.voice = voice;
 
     currentSpeechUtterance.onstart = () => {
       updateReadAloudButtonUI(buttonElement, true);
@@ -4318,6 +4371,309 @@
     });
     currentSpeechUtterance = null;
   }
+
+  // ================= CHATGPT ADVANCED VOICE MODE =================
+  function openVoiceMode() {
+    if (!voiceModeOverlay) return;
+    isVoiceModeActive = true;
+    voiceModeOverlay.classList.add('active');
+    setVoiceModeState('listening');
+    if (voiceLiveTranscript) voiceLiveTranscript.textContent = "I'm listening... Speak naturally.";
+    startVoiceModeRecognition();
+  }
+
+  function closeVoiceMode() {
+    if (!voiceModeOverlay) return;
+    isVoiceModeActive = false;
+    voiceModeOverlay.classList.remove('active');
+    stopVoiceModeRecognition();
+    stopReadAloud();
+  }
+
+  function setVoiceModeState(st) {
+    voiceModeState = st;
+    if (!voiceModeOverlay) return;
+    voiceModeOverlay.classList.remove('listening', 'thinking', 'speaking');
+    voiceModeOverlay.classList.add(st);
+
+    if (voiceStatusText) {
+      if (st === 'listening') voiceStatusText.textContent = 'Listening...';
+      else if (st === 'thinking') voiceStatusText.textContent = 'Thinking...';
+      else if (st === 'speaking') voiceStatusText.textContent = 'Atlas is speaking...';
+    }
+
+    if (voiceStatusDot) {
+      voiceStatusDot.style.background = st === 'speaking' ? '#10B981' : (st === 'thinking' ? '#EC4899' : '#06B6D4');
+      voiceStatusDot.style.boxShadow = `0 0 10px ${voiceStatusDot.style.background}`;
+    }
+
+    if (voiceOrbIcon) {
+      voiceOrbIcon.setAttribute('data-lucide', st === 'speaking' ? 'volume-2' : (st === 'thinking' ? 'sparkles' : 'mic'));
+      if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
+    }
+  }
+
+  function startVoiceModeRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      if (voiceLiveTranscript) voiceLiveTranscript.textContent = 'Speech recognition not supported in this browser. Use Chrome/Edge.';
+      return;
+    }
+
+    if (voiceModeRecognition) {
+      try { voiceModeRecognition.abort(); } catch(_) {}
+    }
+
+    voiceModeRecognition = new SpeechRecognition();
+    voiceModeRecognition.continuous = false;
+    voiceModeRecognition.interimResults = true;
+    const selectLang = document.getElementById('select-lang')?.value || 'auto';
+    const langMap = { auto:'en-US', en:'en-US', hi:'hi-IN', gu:'gu-IN', ta:'ta-IN', te:'te-IN', kn:'kn-IN', ml:'ml-IN', bn:'bn-IN', mr:'mr-IN' };
+    voiceModeRecognition.lang = langMap[selectLang] || 'en-US';
+
+    voiceModeRecognition.onstart = () => {
+      if (isVoiceModeActive && voiceModeState !== 'speaking') {
+        setVoiceModeState('listening');
+      }
+    };
+
+    voiceModeRecognition.onresult = (e) => {
+      let interim = '';
+      let final = '';
+      for (let i = e.resultIndex; i < e.results.length; ++i) {
+        if (e.results[i].isFinal) final += e.results[i][0].transcript;
+        else interim += e.results[i][0].transcript;
+      }
+      const spoken = final || interim;
+      if (spoken && voiceLiveTranscript) {
+        voiceLiveTranscript.textContent = `"${spoken}"`;
+      }
+      if (final) {
+        processVoiceModeUserUtterance(final.trim());
+      }
+    };
+
+    voiceModeRecognition.onerror = (e) => {
+      console.warn('Voice mode recognition error:', e.error);
+      if (isVoiceModeActive && voiceModeState === 'listening' && e.error !== 'aborted') {
+        setTimeout(() => {
+          if (isVoiceModeActive && voiceModeState === 'listening') {
+            try { voiceModeRecognition.start(); } catch(_) {}
+          }
+        }, 1000);
+      }
+    };
+
+    voiceModeRecognition.onend = () => {
+      if (isVoiceModeActive && voiceModeState === 'listening') {
+        try { voiceModeRecognition.start(); } catch(_) {}
+      }
+    };
+
+    try {
+      voiceModeRecognition.start();
+    } catch(err) {
+      console.warn('Failed to start voice recognition:', err);
+    }
+  }
+
+  function stopVoiceModeRecognition() {
+    if (voiceModeRecognition) {
+      try { voiceModeRecognition.abort(); } catch(_) {}
+      voiceModeRecognition = null;
+    }
+  }
+
+  async function processVoiceModeUserUtterance(transcript) {
+    if (!transcript) return;
+    stopVoiceModeRecognition();
+    setVoiceModeState('thinking');
+    if (voiceLiveTranscript) voiceLiveTranscript.textContent = `"${transcript}"`;
+
+    appendMessageHTML('user', transcript);
+    await submitPromptText(transcript, []);
+  }
+
+  function speakInVoiceMode(text) {
+    if (!isVoiceModeActive) return;
+    setVoiceModeState('speaking');
+
+    const cleanText = text.replace(/#+\s+/g, '').replace(/\*+/g, '').replace(/`+/g, '').replace(/<[^>]+>/g, '');
+    if (voiceLiveTranscript) {
+      voiceLiveTranscript.textContent = cleanText.substring(0, 160) + (cleanText.length > 160 ? '…' : '');
+    }
+
+    if (!window.SpeechSynthesisUtterance) {
+      setTimeout(() => {
+        if (isVoiceModeActive) {
+          setVoiceModeState('listening');
+          startVoiceModeRecognition();
+        }
+      }, 3000);
+      return;
+    }
+
+    stopReadAloud();
+    currentSpeechUtterance = new SpeechSynthesisUtterance(cleanText);
+    const persona = selectedVoicePersona || 'alloy';
+    const settings = getVoicePersonaSettings(persona);
+    currentSpeechUtterance.pitch = settings.pitch;
+    currentSpeechUtterance.rate = settings.rate;
+    const voice = getAvailableSpeechVoice(persona);
+    if (voice) currentSpeechUtterance.voice = voice;
+
+    currentSpeechUtterance.onend = () => {
+      currentSpeechUtterance = null;
+      if (isVoiceModeActive) {
+        setVoiceModeState('listening');
+        if (voiceLiveTranscript) voiceLiveTranscript.textContent = "I'm listening... Speak anytime.";
+        startVoiceModeRecognition();
+      }
+    };
+
+    currentSpeechUtterance.onerror = () => {
+      currentSpeechUtterance = null;
+      if (isVoiceModeActive) {
+        setVoiceModeState('listening');
+        startVoiceModeRecognition();
+      }
+    };
+
+    window.speechSynthesis.speak(currentSpeechUtterance);
+  }
+
+  function interruptVoiceMode() {
+    stopReadAloud();
+    if (isVoiceModeActive) {
+      setVoiceModeState('listening');
+      if (voiceLiveTranscript) voiceLiveTranscript.textContent = "Listening... speak now.";
+      startVoiceModeRecognition();
+    }
+  }
+
+  function toggleVoiceModeMic() {
+    isVoiceMicMuted = !isVoiceMicMuted;
+    if (btnVoiceMicToggle) btnVoiceMicToggle.classList.toggle('muted', isVoiceMicMuted);
+    if (voiceMicIcon) {
+      voiceMicIcon.setAttribute('data-lucide', isVoiceMicMuted ? 'mic-off' : 'mic');
+      if (window.lucide) lucide.createIcons();
+    }
+    if (isVoiceMicMuted) {
+      stopVoiceModeRecognition();
+      if (voiceLiveTranscript) voiceLiveTranscript.textContent = "Microphone muted. Tap mic to unmute.";
+    } else {
+      setVoiceModeState('listening');
+      startVoiceModeRecognition();
+    }
+  }
+
+  function onVoiceOrbClick() {
+    if (voiceModeState === 'speaking') {
+      interruptVoiceMode();
+    } else if (voiceModeState === 'listening') {
+      if (voiceModeRecognition) {
+        try { voiceModeRecognition.stop(); } catch(_) {}
+      }
+    }
+  }
+
+  // ================= MULTIMODAL IMAGE LIGHTBOX & INSPECTOR =================
+  function openImageLightbox(src, filename = 'Image Inspection') {
+    if (!imageLightboxOverlay || !lightboxImgElement) return;
+    currentLightboxImageUrl = src;
+    currentLightboxZoom = 1.0;
+    lightboxImgElement.src = src;
+    lightboxImgElement.style.transform = `scale(1.0)`;
+    if (lightboxFilename) lightboxFilename.textContent = filename;
+    if (lightboxInspectionDrawer) lightboxInspectionDrawer.classList.remove('open');
+    if (lightboxInspectionResults) {
+      lightboxInspectionResults.innerHTML = `
+        <div style="font-size:0.85rem; color:#94A3B8;">
+          Click <strong>Deep Inspect</strong> to run multimodal OCR, anomaly detection, and equipment verification.
+        </div>
+      `;
+    }
+    imageLightboxOverlay.classList.add('active');
+  }
+
+  function closeImageLightbox() {
+    if (!imageLightboxOverlay) return;
+    imageLightboxOverlay.classList.remove('active');
+    if (lightboxImgElement) lightboxImgElement.src = '';
+  }
+
+  function zoomLightbox(delta, reset = false) {
+    if (!lightboxImgElement) return;
+    if (reset) {
+      currentLightboxZoom = 1.0;
+    } else {
+      currentLightboxZoom = Math.min(3.0, Math.max(0.5, currentLightboxZoom + delta));
+    }
+    lightboxImgElement.style.transform = `scale(${currentLightboxZoom})`;
+    if (btnLightboxZoomReset) {
+      btnLightboxZoomReset.textContent = `${Math.round(currentLightboxZoom * 100)}%`;
+    }
+  }
+
+  async function inspectCurrentLightboxImage() {
+    if (!currentLightboxImageUrl || !lightboxInspectionDrawer) return;
+    lightboxInspectionDrawer.classList.add('open');
+    if (lightboxInspectionResults) {
+      lightboxInspectionResults.innerHTML = `
+        <div style="padding:20px 0; text-align:center; color:var(--accent-secondary);">
+          <div style="font-size:1.1rem; margin-bottom:8px;">✦ Auditing Optical Pixels...</div>
+          <div style="font-size:0.8rem; color:#94A3B8;">Extracting OCR telemetry, anomaly gradients, and structural features...</div>
+        </div>
+      `;
+    }
+
+    try {
+      const res = await fetch('/api/vision/inspect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: currentLightboxImageUrl, focus: 'equipment_anomaly' })
+      });
+      if (!res.ok) throw new Error('Vision inspection request failed');
+      const data = await res.json();
+      if (lightboxInspectionResults) {
+        lightboxInspectionResults.innerHTML = `
+          <div style="font-size:0.85rem; line-height:1.6; color:#ECECEC;">
+            ${marked.parse(data.analysis || 'No anomalies detected.')}
+          </div>
+        `;
+        lucide.createIcons();
+      }
+    } catch(err) {
+      if (lightboxInspectionResults) {
+        lightboxInspectionResults.innerHTML = `<div style="color:var(--danger); font-size:0.85rem;">Inspection error: ${err.message}</div>`;
+      }
+    }
+  }
+
+  function askAboutLightboxImage() {
+    if (!currentLightboxImageUrl) return;
+    closeImageLightbox();
+    attachmentsList.push({
+      url: currentLightboxImageUrl,
+      filename: lightboxFilename?.textContent || 'inspection.jpg',
+      type: 'image'
+    });
+    renderAttachmentPreviewBar();
+    composerInput.value = 'Please analyze this image, extract any legible text/telemetry, and check for operational anomalies: ';
+    handleComposerResize();
+    composerInput.focus();
+  }
+
+  function downloadLightboxImage() {
+    if (!currentLightboxImageUrl) return;
+    const a = document.createElement('a');
+    a.href = currentLightboxImageUrl;
+    a.download = lightboxFilename?.textContent || 'atlas-image.jpg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
 
   function resetSendButtonState() {
     btnSendMessage.classList.remove('stop-mode');
