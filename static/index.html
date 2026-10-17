@@ -2565,6 +2565,110 @@
     renderThreads();
   }
 
+  function getThreadDateCategory(dateStr) {
+    if (!dateStr) return 'Previous 30 Days';
+    try {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const startOfYesterday = new Date(startOfToday.getTime() - 24 * 60 * 60 * 1000);
+      const startOf7DaysAgo = new Date(startOfToday.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const startOf30DaysAgo = new Date(startOfToday.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      if (date >= startOfToday) return 'Today';
+      if (date >= startOfYesterday) return 'Yesterday';
+      if (date >= startOf7DaysAgo) return 'Previous 7 Days';
+      if (date >= startOf30DaysAgo) return 'Previous 30 Days';
+      return 'Older';
+    } catch (_) {
+      return 'Previous 30 Days';
+    }
+  }
+
+  function createThreadDOMItem(t) {
+    const item = document.createElement('div');
+    item.className = `thread-item ${t.thread_id === activeThreadId ? 'active' : ''}`;
+    item.dataset.id = t.thread_id;
+
+    const isSoftDeleted = !!t.deleted_at;
+    const pinTitle = t.pinned ? 'Unpin chat' : 'Pin chat';
+
+    let actionsHTML = '';
+    if (isSoftDeleted) {
+      actionsHTML = `
+        <button class="thread-action-btn restore" title="Restore chat"><i data-lucide="rotate-ccw" style="width:14px;height:14px;color:var(--success);"></i></button>
+        <button class="thread-action-btn hard-delete" title="Delete permanently"><i data-lucide="trash-2" style="width:14px;height:14px;color:var(--danger);"></i></button>
+      `;
+    } else {
+      actionsHTML = `
+        <button class="thread-action-btn pin-btn ${t.pinned ? 'pinned' : ''}" title="${pinTitle}"><i data-lucide="star" style="width:14px;height:14px;${t.pinned ? 'fill:var(--accent-primary);color:var(--accent-primary);' : ''}"></i></button>
+        <button class="thread-action-btn rename" title="Rename title"><i data-lucide="edit-2" style="width:14px;height:14px;"></i></button>
+        <button class="thread-action-btn delete" title="Delete chat"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
+      `;
+    }
+
+    item.innerHTML = `
+      <div class="thread-info" style="${isSoftDeleted ? 'opacity: 0.6; text-decoration: line-through;' : ''}">
+        <i data-lucide="message-square" class="thread-icon" style="width:16px;height:16px;"></i>
+        <span class="thread-title-text" style="${t.pinned ? 'font-weight: 600;' : ''}">${t.title || t.thread_id}</span>
+      </div>
+      <div class="thread-actions">
+        ${actionsHTML}
+      </div>
+    `;
+
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('.thread-action-btn')) return;
+      selectThread(t.thread_id);
+    });
+
+    if (isSoftDeleted) {
+      item.querySelector('.restore').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          const res = await fetch(`/threads/${encodeURIComponent(t.thread_id)}/restore`, { method: 'POST' });
+          if (res.ok) await refreshThreadsList();
+        } catch (err) { console.error(err); }
+      });
+
+      item.querySelector('.hard-delete').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm('Permanently delete this chat? This cannot be undone.')) return;
+        try {
+          const res = await fetch(`/threads/${encodeURIComponent(t.thread_id)}?hard=true`, { method: 'DELETE' });
+          if (res.ok) {
+            if (t.thread_id === activeThreadId) {
+              const nextThread = threads.find(x => x.thread_id !== t.thread_id);
+              if (nextThread) { await selectThread(nextThread.thread_id); } else { await createNewChat(); }
+            } else {
+              await refreshThreadsList();
+            }
+          }
+        } catch (err) { console.error(err); }
+      });
+    } else {
+      item.querySelector('.pin-btn').addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          const res = await fetch(`/threads/${encodeURIComponent(t.thread_id)}/pin?pinned=${!t.pinned}`, { method: 'POST' });
+          if (res.ok) await refreshThreadsList();
+        } catch (err) { console.error(err); }
+      });
+
+      item.querySelector('.rename').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openRenameModal(t.thread_id, t.title || t.thread_id);
+      });
+
+      item.querySelector('.delete').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openDeleteModal(t.thread_id);
+      });
+    }
+
+    return item;
+  }
+
   function renderThreads() {
     threadsList.innerHTML = '';
 
@@ -2593,89 +2697,33 @@
       threadsList.appendChild(activeNewItem);
     }
 
-    threads.forEach(t => {
-      const item = document.createElement('div');
-      item.className = `thread-item ${t.thread_id === activeThreadId ? 'active' : ''}`;
-      item.dataset.id = t.thread_id;
+    if (searchQuery) {
+      threads.forEach(t => threadsList.appendChild(createThreadDOMItem(t)));
+    } else {
+      const categories = ['Today', 'Yesterday', 'Previous 7 Days', 'Previous 30 Days', 'Older'];
+      const grouped = {};
+      categories.forEach(c => grouped[c] = []);
 
-      const isSoftDeleted = !!t.deleted_at;
-      const pinTitle = t.pinned ? 'Unpin chat' : 'Pin chat';
-
-      let actionsHTML = '';
-      if (isSoftDeleted) {
-        actionsHTML = `
-          <button class="thread-action-btn restore" title="Restore chat"><i data-lucide="rotate-ccw" style="width:14px;height:14px;color:var(--success);"></i></button>
-          <button class="thread-action-btn hard-delete" title="Delete permanently"><i data-lucide="trash-2" style="width:14px;height:14px;color:var(--danger);"></i></button>
-        `;
-      } else {
-        actionsHTML = `
-          <button class="thread-action-btn pin-btn ${t.pinned ? 'pinned' : ''}" title="${pinTitle}"><i data-lucide="star" style="width:14px;height:14px;${t.pinned ? 'fill:var(--accent-primary);color:var(--accent-primary);' : ''}"></i></button>
-          <button class="thread-action-btn rename" title="Rename title"><i data-lucide="edit-2" style="width:14px;height:14px;"></i></button>
-          <button class="thread-action-btn delete" title="Delete chat"><i data-lucide="trash-2" style="width:14px;height:14px;"></i></button>
-        `;
-      }
-
-      item.innerHTML = `
-        <div class="thread-info" style="${isSoftDeleted ? 'opacity: 0.6; text-decoration: line-through;' : ''}">
-          <i data-lucide="message-square" class="thread-icon" style="width:16px;height:16px;"></i>
-          <span class="thread-title-text" style="${t.pinned ? 'font-weight: 600;' : ''}">${t.title || t.thread_id}</span>
-        </div>
-        <div class="thread-actions">
-          ${actionsHTML}
-        </div>
-      `;
-
-      item.addEventListener('click', (e) => {
-        if (e.target.closest('.thread-action-btn')) return;
-        selectThread(t.thread_id);
+      threads.forEach(t => {
+        const cat = getThreadDateCategory(t.updated_at);
+        if (grouped[cat]) grouped[cat].push(t);
+        else grouped['Older'].push(t);
       });
 
-      if (isSoftDeleted) {
-        item.querySelector('.restore').addEventListener('click', async (e) => {
-          e.stopPropagation();
-          try {
-            const res = await fetch(`/threads/${encodeURIComponent(t.thread_id)}/restore`, { method: 'POST' });
-            if (res.ok) await refreshThreadsList();
-          } catch (err) { console.error(err); }
-        });
+      categories.forEach(cat => {
+        if (grouped[cat] && grouped[cat].length > 0) {
+          const catHeader = document.createElement('div');
+          catHeader.className = 'thread-category-header';
+          catHeader.textContent = cat;
+          threadsList.appendChild(catHeader);
 
-        item.querySelector('.hard-delete').addEventListener('click', async (e) => {
-          e.stopPropagation();
-          if (!confirm('Permanently delete this chat? This cannot be undone.')) return;
-          try {
-            const res = await fetch(`/threads/${encodeURIComponent(t.thread_id)}?hard=true`, { method: 'DELETE' });
-            if (res.ok) {
-              if (t.thread_id === activeThreadId) {
-                const nextThread = threads.find(x => x.thread_id !== t.thread_id);
-                if (nextThread) { await selectThread(nextThread.thread_id); } else { await createNewChat(); }
-              } else {
-                await refreshThreadsList();
-              }
-            }
-          } catch (err) { console.error(err); }
-        });
-      } else {
-        item.querySelector('.pin-btn').addEventListener('click', async (e) => {
-          e.stopPropagation();
-          try {
-            const res = await fetch(`/threads/${encodeURIComponent(t.thread_id)}/pin?pinned=${!t.pinned}`, { method: 'POST' });
-            if (res.ok) await refreshThreadsList();
-          } catch (err) { console.error(err); }
-        });
+          grouped[cat].forEach(t => {
+            threadsList.appendChild(createThreadDOMItem(t));
+          });
+        }
+      });
+    }
 
-        item.querySelector('.rename').addEventListener('click', (e) => {
-          e.stopPropagation();
-          openRenameModal(t.thread_id, t.title || t.thread_id);
-        });
-
-        item.querySelector('.delete').addEventListener('click', (e) => {
-          e.stopPropagation();
-          openDeleteModal(t.thread_id);
-        });
-      }
-
-      threadsList.appendChild(item);
-    });
     lucide.createIcons();
   }
 
