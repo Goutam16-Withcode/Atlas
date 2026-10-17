@@ -3025,12 +3025,79 @@
     `;
   }
 
+  function wireUserMessageControls(row) {
+    const copyBtn = row.querySelector('.cta-copy-user');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        const text = row.dataset.rawText || '';
+        try {
+          await navigator.clipboard.writeText(text);
+          copyBtn.innerHTML = `<i data-lucide="check" style="width:13px;height:13px;color:var(--success);"></i>`;
+          lucide.createIcons();
+          setTimeout(() => {
+            copyBtn.innerHTML = `<i data-lucide="copy" style="width:13px;height:13px;"></i>`;
+            lucide.createIcons();
+          }, 1500);
+        } catch (err) { console.error(err); }
+      });
+    }
+
+    const editBtn = row.querySelector('.cta-edit-user');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        const bubble = row.querySelector('.message-bubble');
+        const contentDiv = row.querySelector('.message-content');
+        if (row.querySelector('.user-msg-edit-box')) return;
+
+        const currentText = row.dataset.rawText || contentDiv.innerText;
+        contentDiv.style.display = 'none';
+
+        const editBox = document.createElement('div');
+        editBox.className = 'user-msg-edit-box';
+        editBox.innerHTML = `
+          <textarea class="user-msg-edit-textarea" rows="3">${escapeHTML(currentText)}</textarea>
+          <div class="user-msg-edit-actions">
+            <button type="button" class="btn-edit-cancel">Cancel</button>
+            <button type="button" class="btn-edit-save">Save &amp; Submit</button>
+          </div>
+        `;
+
+        bubble.appendChild(editBox);
+
+        editBox.querySelector('.btn-edit-cancel').addEventListener('click', () => {
+          editBox.remove();
+          contentDiv.style.display = '';
+        });
+
+        editBox.querySelector('.btn-edit-save').addEventListener('click', () => {
+          const newText = editBox.querySelector('.user-msg-edit-textarea').value.trim();
+          if (!newText) return;
+          editBox.remove();
+          contentDiv.innerHTML = `<p>${escapeHTML(newText)}</p>`;
+          contentDiv.style.display = '';
+          row.dataset.rawText = newText;
+
+          // Branch: remove subsequent messages from the UI
+          let nextSibling = row.nextElementSibling;
+          while (nextSibling) {
+            const toRemove = nextSibling;
+            nextSibling = nextSibling.nextElementSibling;
+            toRemove.remove();
+          }
+
+          submitPromptText(newText, []);
+        });
+      });
+    }
+  }
+
   function appendMessageHTML(role, content) {
     const welcome = document.querySelector('.welcome-container');
     if (welcome) welcome.remove();
 
     const row = document.createElement('div');
     row.className = `message-row ${role}`;
+    row.dataset.rawText = content;
 
     const avatarLabel = role === 'user' ? 'U' : role === 'assistant' ? 'A' : 'T';
 
@@ -3040,9 +3107,37 @@
     if (role === 'assistant') {
       controlsHTML = `
         <div class="message-controls">
-          <button class="btn-message-control read-aloud" title="Read response aloud">
-            <i data-lucide="volume-2" style="width:14px;height:14px;"></i>
+          <button class="btn-msg-action cta-copy-msg" title="Copy response" type="button">
+            <i data-lucide="copy" style="width:13px;height:13px;"></i>
+            <span>Copy</span>
+          </button>
+          <button class="btn-msg-action cta-regenerate" title="Regenerate response" type="button">
+            <i data-lucide="rotate-cw" style="width:13px;height:13px;"></i>
+            <span>Retry</span>
+          </button>
+          <button class="btn-msg-action read-aloud" title="Read response aloud" type="button">
+            <i data-lucide="volume-2" style="width:13px;height:13px;"></i>
             <span>Listen</span>
+          </button>
+          <button class="btn-msg-action cta-thumbs-up" title="Good response" type="button">
+            <i data-lucide="thumbs-up" style="width:13px;height:13px;"></i>
+          </button>
+          <button class="btn-msg-action cta-thumbs-down" title="Bad response" type="button">
+            <i data-lucide="thumbs-down" style="width:13px;height:13px;"></i>
+          </button>
+        </div>
+      `;
+    }
+
+    let userControlsHTML = '';
+    if (role === 'user') {
+      userControlsHTML = `
+        <div class="user-msg-controls">
+          <button class="btn-msg-action cta-edit-user" title="Edit prompt" type="button">
+            <i data-lucide="pencil" style="width:13px;height:13px;"></i>
+          </button>
+          <button class="btn-msg-action cta-copy-user" title="Copy prompt" type="button">
+            <i data-lucide="copy" style="width:13px;height:13px;"></i>
           </button>
         </div>
       `;
@@ -3050,6 +3145,7 @@
 
     row.innerHTML = `
       <div class="message-avatar" title="${role}">${avatarLabel}</div>
+      ${userControlsHTML}
       <div class="message-bubble">
         <div class="message-content">${bodyHTML}</div>
         ${controlsHTML}
@@ -3060,6 +3156,8 @@
 
     if (role === 'assistant' && content) {
       finalizeAssistantMessage(row, content);
+    } else if (role === 'user') {
+      wireUserMessageControls(row);
     }
 
     lucide.createIcons();
@@ -3334,6 +3432,48 @@
     parseAndRenderVoiceMemos(contentArea);
     parseAndRenderVisionCards(contentArea);
     parseAndRenderChecklists(contentArea);
+
+    const copyBtn = row.querySelector('.cta-copy-msg');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        try {
+          const textToCopy = row.dataset.rawText || content;
+          await navigator.clipboard.writeText(textToCopy);
+          copyBtn.innerHTML = `<i data-lucide="check" style="width:13px;height:13px;color:var(--success);"></i><span>Copied!</span>`;
+          lucide.createIcons();
+          setTimeout(() => {
+            copyBtn.innerHTML = `<i data-lucide="copy" style="width:13px;height:13px;"></i><span>Copy</span>`;
+            lucide.createIcons();
+          }, 2000);
+        } catch (err) { console.error(err); }
+      });
+    }
+
+    const regenBtn = row.querySelector('.cta-regenerate');
+    if (regenBtn) {
+      regenBtn.addEventListener('click', () => {
+        let prev = row.previousElementSibling;
+        while (prev && !prev.classList.contains('user')) {
+          prev = prev.previousElementSibling;
+        }
+        if (prev) {
+          const userText = prev.dataset.rawText || '';
+          row.remove();
+          submitPromptText(userText, []);
+        }
+      });
+    }
+
+    const thumbUp = row.querySelector('.cta-thumbs-up');
+    const thumbDown = row.querySelector('.cta-thumbs-down');
+    if (thumbUp) thumbUp.addEventListener('click', () => {
+      thumbUp.classList.toggle('active');
+      if (thumbDown) thumbDown.classList.remove('active');
+    });
+    if (thumbDown) thumbDown.addEventListener('click', () => {
+      thumbDown.classList.toggle('active');
+      if (thumbUp) thumbUp.classList.remove('active');
+    });
 
     const listenBtn = row.querySelector('.read-aloud');
     if (listenBtn) {
@@ -3832,6 +3972,206 @@
     currentSpeechUtterance = null;
   }
 
+  function resetSendButtonState() {
+    btnSendMessage.classList.remove('stop-mode');
+    btnSendMessage.title = 'Send message';
+    const sendIcon = document.getElementById('send-button-icon');
+    if (sendIcon) {
+      sendIcon.setAttribute('data-lucide', 'arrow-up');
+      lucide.createIcons();
+    }
+    handleComposerResize();
+  }
+
+  function showThinkingIndicator() {
+    thinkingStartTime = Date.now();
+    const loader = document.createElement('div');
+    loader.className = 'message-row assistant active-reasoning-row';
+    loader.id = 'active-reasoning-row';
+    loader.innerHTML = `
+      <div class="message-avatar" title="Atlas">A</div>
+      <div class="message-bubble frameless">
+        <div class="reasoning-accordion open">
+          <button type="button" class="reasoning-header-btn" onclick="this.parentElement.classList.toggle('open')">
+            <span class="reasoning-sparkle">✦</span>
+            <span class="reasoning-title">Thinking… (<span id="thinking-timer-count">1s</span>)</span>
+            <i data-lucide="chevron-down" class="reasoning-chevron" style="width:14px;height:14px;"></i>
+          </button>
+          <div class="reasoning-body">
+            <div class="reasoning-step-item"><span class="step-dot"></span>Analyzing query &amp; identifying constraints</div>
+            <div class="reasoning-step-item"><span class="step-dot pulse"></span>Formulating verified step-by-step reasoning</div>
+          </div>
+        </div>
+      </div>
+    `;
+    messagesContainer.appendChild(loader);
+    lucide.createIcons();
+    scrollToBottom();
+
+    if (thinkingTimerInterval) clearInterval(thinkingTimerInterval);
+    thinkingTimerInterval = setInterval(() => {
+      const elapsed = Math.max(1, Math.round((Date.now() - thinkingStartTime) / 1000));
+      const el = document.getElementById('thinking-timer-count');
+      if (el) el.textContent = `${elapsed}s`;
+    }, 1000);
+  }
+
+  function removeThinkingIndicator(assistantRow) {
+    if (thinkingTimerInterval) {
+      clearInterval(thinkingTimerInterval);
+      thinkingTimerInterval = null;
+    }
+    const elapsed = Math.max(1, Math.round((Date.now() - (thinkingStartTime || Date.now())) / 1000));
+    const activeReasoning = document.getElementById('active-reasoning-row');
+    if (activeReasoning) activeReasoning.remove();
+
+    if (assistantRow && !assistantRow.querySelector('.thought-badge-container')) {
+      const badge = document.createElement('div');
+      badge.className = 'thought-badge-container';
+      badge.innerHTML = `
+        <div class="reasoning-accordion">
+          <button type="button" class="reasoning-header-btn" onclick="this.parentElement.classList.toggle('open')">
+            <span class="reasoning-sparkle">✦</span>
+            <span class="reasoning-title">Thought for ${elapsed} seconds</span>
+            <i data-lucide="chevron-down" class="reasoning-chevron" style="width:14px;height:14px;"></i>
+          </button>
+          <div class="reasoning-body">
+            <div class="reasoning-step-item"><span class="step-dot"></span>Understood user query and parsed context</div>
+            <div class="reasoning-step-item"><span class="step-dot"></span>Structured multi-step reasoning and verified physical parameters</div>
+          </div>
+        </div>
+      `;
+      const bubble = assistantRow.querySelector('.message-bubble');
+      if (bubble) bubble.insertBefore(badge, bubble.firstChild);
+      lucide.createIcons();
+    }
+  }
+
+  async function submitPromptText(messageText, attachments = []) {
+    if (isThinking) return;
+    isThinking = true;
+
+    // Switch Send Button to Stop Mode
+    btnSendMessage.disabled = false;
+    btnSendMessage.classList.add('stop-mode');
+    btnSendMessage.title = 'Stop streaming';
+    const sendIcon = document.getElementById('send-button-icon');
+    if (sendIcon) {
+      sendIcon.setAttribute('data-lucide', 'square');
+      lucide.createIcons();
+    }
+
+    showThinkingIndicator();
+
+    activeAbortController = new AbortController();
+    let assistantRow = null;
+    let assistantContentArea = null;
+    let replyText = '';
+
+    try {
+      const selectedLang = document.getElementById('select-lang').value;
+      const requestPayload = {
+        thread_id: activeThreadId,
+        message: messageText,
+        attachments: attachments,
+        language: selectedLang,
+        model_mode: activeModelMode,
+        web_search: isWebSearchActive
+      };
+
+      let res = await fetch('/chat/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestPayload),
+        signal: activeAbortController.signal
+      });
+
+      if (res.status === 403) {
+        await createNewChat();
+        requestPayload.thread_id = activeThreadId;
+        res = await fetch('/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload),
+          signal: activeAbortController.signal
+        });
+      }
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error?.message || errData.detail || 'Service error');
+      }
+
+      assistantRow = appendMessageHTML('assistant', '');
+      assistantContentArea = assistantRow.querySelector('.message-content');
+      removeThinkingIndicator(assistantRow);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        let currentEvent = '';
+        for (const line of lines) {
+          const cleanLine = line.trim();
+          if (!cleanLine) continue;
+          if (cleanLine.startsWith('event:')) {
+            currentEvent = cleanLine.substring(6).trim();
+          } else if (cleanLine.startsWith('data:')) {
+            const dataVal = cleanLine.substring(5).trim();
+            if (currentEvent === 'token') {
+              replyText = dataVal.replace(/\\n/g, '\n');
+              assistantContentArea.innerHTML = marked.parse(replyText);
+              scrollToBottom();
+            } else if (currentEvent === 'done') {
+              const payload = JSON.parse(dataVal);
+              if (!replyText) {
+                replyText = payload.reply;
+                assistantContentArea.innerHTML = marked.parse(replyText);
+              }
+              valIntent.textContent = payload.intent || 'n/a';
+              valEscalation.textContent = String(Boolean(payload.needs_escalation));
+              finalizeAssistantMessage(assistantRow, replyText);
+            } else if (currentEvent === 'error') {
+              const errPayload = JSON.parse(dataVal);
+              assistantContentArea.innerHTML = '<span style="color:var(--danger);">Error: ' + escapeHTML(errPayload.detail || 'Chat failed') + '</span>';
+            }
+          }
+        }
+      }
+
+      if (assistantRow && replyText) {
+        assistantRow.dataset.rawText = replyText;
+        finalizeAssistantMessage(assistantRow, replyText);
+      }
+
+      await refreshThreadsList();
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        console.log('Chat stream stopped by user.');
+        if (assistantRow && replyText) {
+          assistantRow.dataset.rawText = replyText;
+          finalizeAssistantMessage(assistantRow, replyText);
+        }
+      } else {
+        console.error(err);
+        removeThinkingIndicator();
+        appendMessageHTML('tool', 'Failed response: ' + err.message);
+      }
+    } finally {
+      isThinking = false;
+      activeAbortController = null;
+      resetSendButtonState();
+    }
+  }
+
   async function handleChatSubmit(e) {
     e.preventDefault();
     const messageText = composerInput.value.trim();
@@ -3887,109 +4227,7 @@
       userBubble.insertBefore(renderNode, userBubble.lastChild);
     });
 
-    showThinkingIndicator();
-    isThinking = true;
-
-    try {
-      const selectedLang = document.getElementById('select-lang').value;
-      let res = await fetch('/chat/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thread_id: activeThreadId, message: messageText, attachments: currentAttachments, language: selectedLang })
-      });
-
-      if (res.status === 403) {
-        // If thread belonged to an earlier user session, smoothly create fresh thread for current user
-        await createNewChat();
-        res = await fetch('/chat/stream', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ thread_id: activeThreadId, message: messageText, attachments: currentAttachments, language: selectedLang })
-        });
-      }
-
-      if (!res.ok) { const errData = await res.json().catch(() => ({})); throw new Error(errData.error?.message || errData.detail || 'Service error'); }
-
-      removeThinkingIndicator();
-
-      const assistantRow = appendMessageHTML('assistant', '');
-      const assistantContentArea = assistantRow.querySelector('.message-content');
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      let replyText = '';
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        let currentEvent = '';
-        for (const line of lines) {
-          const cleanLine = line.trim();
-          if (!cleanLine) continue;
-          if (cleanLine.startsWith('event:')) {
-            currentEvent = cleanLine.substring(6).trim();
-          } else if (cleanLine.startsWith('data:')) {
-            const dataVal = cleanLine.substring(5).trim();
-            if (currentEvent === 'token') {
-              replyText = dataVal.replace(/\\n/g, '\n');
-              assistantContentArea.innerHTML = marked.parse(replyText);
-              scrollToBottom();
-            } else if (currentEvent === 'done') {
-              const payload = JSON.parse(dataVal);
-              if (!replyText) {
-                replyText = payload.reply;
-                assistantContentArea.innerHTML = marked.parse(replyText);
-              }
-              valIntent.textContent = payload.intent || 'n/a';
-              valEscalation.textContent = String(Boolean(payload.needs_escalation));
-
-              finalizeAssistantMessage(assistantRow, replyText);
-            } else if (currentEvent === 'error') {
-              const errPayload = JSON.parse(dataVal);
-              assistantContentArea.innerHTML = '<span style="color:var(--danger);">Error: ' + escapeHTML(errPayload.detail || 'Chat failed') + '</span>';
-            }
-          }
-        }
-      }
-
-      await refreshThreadsList();
-    } catch (err) {
-      console.error(err);
-      removeThinkingIndicator();
-      appendMessageHTML('tool', 'Failed response: ' + err.message);
-    } finally {
-      isThinking = false;
-    }
-  }
-
-
-
-  function showThinkingIndicator() {
-    const loader = document.createElement('div');
-    loader.className = 'message-row assistant thinking-loader';
-    loader.innerHTML = `
-      <div class="message-avatar">A</div>
-      <div class="message-bubble" style="padding:10px 2px;">
-        <div class="thinking-loader">
-          <div class="thinking-dot"></div>
-          <div class="thinking-dot"></div>
-          <div class="thinking-dot"></div>
-        </div>
-      </div>
-    `;
-    messagesContainer.appendChild(loader);
-    scrollToBottom();
-  }
-
-  function removeThinkingIndicator() {
-    const loader = document.querySelector('.thinking-loader');
-    if (loader) loader.remove();
+    await submitPromptText(messageText, currentAttachments);
   }
 
   async function resetCurrentThread() {
