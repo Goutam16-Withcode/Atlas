@@ -984,6 +984,73 @@ def upload_file(
         raise HTTPException(status_code=500, detail="Failed to write file to storage")
 
 
+@app.post("/api/audio/transcribe")
+def api_transcribe_audio(
+    request: Request,
+    response: Response,
+    file: UploadFile = File(...),
+    session_id: Optional[str] = Cookie(None),
+):
+    try:
+        username = get_current_user(session_id)
+    except HTTPException:
+        username = f"guest_{uuid.uuid4().hex[:6]}"
+
+    enforce_rate_limit(request, username, "/upload")
+
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if not ext:
+        ext = ".webm"
+
+    unique_filename = f"voice_{uuid.uuid4().hex[:8]}{ext}"
+    filepath = os.path.join("static", "uploads", unique_filename)
+
+    try:
+        contents = file.file.read(MAX_UPLOAD_BYTES)
+        with open(filepath, "wb") as f:
+            f.write(contents)
+
+        transcription = transcribe_audio_file(filepath)
+        url_path = f"/static/uploads/{unique_filename}"
+        write_audit(username, "audio_transcribe", detail=file.filename or unique_filename, ip=client_ip(request))
+        return {
+            "status": "ok",
+            "transcription": transcription,
+            "url": url_path,
+            "filename": file.filename or unique_filename
+        }
+    except Exception as e:
+        logger.error(f"Failed to transcribe audio: {e}")
+        raise HTTPException(status_code=500, detail="Audio transcription failed")
+
+
+@app.post("/api/vision/inspect")
+def api_inspect_vision(
+    request: Request,
+    payload: Dict[str, Any],
+    session_id: Optional[str] = Cookie(None),
+):
+    try:
+        username = get_current_user(session_id)
+    except HTTPException:
+        username = "guest"
+
+    image_url = payload.get("url") or payload.get("image_path")
+    focus = payload.get("focus", "equipment_anomaly")
+    if not image_url:
+        raise HTTPException(status_code=400, detail="Missing image url or path")
+
+    from tools import analyze_visual_inspection
+    try:
+        result = analyze_visual_inspection.invoke({"image_path_or_url": image_url, "inspection_focus": focus})
+        write_audit(username, "vision_inspect", detail=str(image_url)[:50], ip=client_ip(request))
+        return {"status": "ok", "analysis": result}
+    except Exception as e:
+        logger.error(f"Vision inspection API failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Vision inspection failed: {str(e)}")
+
+
+
 # --------------------------------------------------------------------------- #
 # Fact extraction (long-term memory)
 # --------------------------------------------------------------------------- #

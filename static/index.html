@@ -1607,8 +1607,166 @@
     height: 18px;
     accent-color: var(--accent-primary);
     cursor: pointer;
-    margin-top: 2px;
+  /* ================= CHATGPT ADVANCED VOICE MODE ================= */
+  .voice-mode-overlay {
+    position: fixed; inset: 0; z-index: 10000;
+    background: radial-gradient(circle at center, #1E1E24 0%, #0F0F12 100%);
+    display: none; flex-direction: column; align-items: center; justify-content: space-between;
+    padding: 36px 24px 44px 24px; color: #FFFFFF; backdrop-filter: blur(20px);
+    opacity: 0; transition: opacity .3s ease;
   }
+  .voice-mode-overlay.active {
+    display: flex; opacity: 1;
+  }
+  .voice-mode-header {
+    width: 100%; max-width: 600px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .voice-status-badge {
+    display: flex; align-items: center; gap: 8px; font-size: 0.88rem; font-weight: 600;
+    background: rgba(255, 255, 255, 0.08); padding: 6px 14px; border-radius: 99px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .voice-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #10B981;
+    box-shadow: 0 0 10px #10B981; animation: pulseDot 2s infinite;
+  }
+  .voice-persona-select {
+    background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #FFFFFF; padding: 6px 12px; border-radius: 99px; font-size: 0.82rem; outline: none; cursor: pointer;
+  }
+  .voice-persona-select option { background: #1E1E24; color: #FFFFFF; }
+  .btn-close-voice-mode {
+    background: rgba(255, 255, 255, 0.1); border: none; color: #FFFFFF; width: 40px; height: 40px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-close-voice-mode:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.05); }
+
+  /* Centered Hypnotic Voice Orb */
+  .voice-orb-wrapper {
+    position: relative; width: 280px; height: 280px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .voice-orb-ring {
+    position: absolute; border-radius: 50%; transition: all .4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .voice-orb-ring-1 {
+    width: 260px; height: 260px; background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%);
+    animation: orbPulse 4s ease-in-out infinite alternate;
+  }
+  .voice-orb-ring-2 {
+    width: 200px; height: 200px; background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, rgba(6, 182, 212, 0) 70%);
+    animation: orbPulse 3s ease-in-out infinite alternate-reverse;
+  }
+  .voice-orb-core {
+    width: 130px; height: 130px; border-radius: 50%;
+    background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+    box-shadow: 0 0 50px rgba(99, 102, 241, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.4);
+    transition: all .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* Orb states */
+  .voice-mode-overlay.listening .voice-orb-core {
+    transform: scale(1.15);
+    background: linear-gradient(135deg, #06B6D4 0%, #3B82F6 100%);
+    box-shadow: 0 0 70px rgba(6, 182, 212, 0.8), inset 0 0 25px rgba(255, 255, 255, 0.5);
+  }
+  .voice-mode-overlay.thinking .voice-orb-core {
+    transform: scale(0.95);
+    background: linear-gradient(135deg, #8B5CF6 0%, #EC4899 100%);
+    box-shadow: 0 0 60px rgba(236, 72, 153, 0.7);
+    animation: orbSpin 3s linear infinite;
+  }
+  .voice-mode-overlay.speaking .voice-orb-core {
+    transform: scale(1.22);
+    background: linear-gradient(135deg, #10A37F 0%, #06B6D4 100%);
+    box-shadow: 0 0 85px rgba(16, 163, 127, 0.9), inset 0 0 30px rgba(255, 255, 255, 0.6);
+    animation: orbBreath 1.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes orbPulse { 0% { transform: scale(0.9); opacity: 0.6; } 100% { transform: scale(1.15); opacity: 0.95; } }
+  @keyframes orbBreath { 0% { transform: scale(1.1); } 100% { transform: scale(1.28); } }
+  @keyframes orbSpin { 0% { transform: rotate(0deg) scale(0.95); } 100% { transform: rotate(360deg) scale(0.95); } }
+
+  .voice-transcript-box {
+    width: 100%; max-width: 580px; text-align: center; min-height: 70px;
+    font-size: 1.15rem; color: #E2E8F0; line-height: 1.5; font-weight: 500;
+  }
+  .voice-transcript-hint {
+    font-size: 0.84rem; color: #94A3B8; margin-top: 6px;
+  }
+  .voice-controls-bar {
+    display: flex; align-items: center; gap: 20px;
+  }
+  .btn-voice-control-large {
+    width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all .2s;
+  }
+  .btn-voice-mic {
+    background: #FFFFFF; color: #0F0F12;
+  }
+  .btn-voice-mic.muted {
+    background: #EF4444; color: #FFFFFF;
+  }
+  .btn-voice-mic:hover { transform: scale(1.08); }
+  .btn-voice-interrupt {
+    background: rgba(255, 255, 255, 0.12); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .btn-voice-interrupt:hover { background: rgba(255, 255, 255, 0.2); }
+
+  /* ================= SOUND EQUALIZER ANIMATION ================= */
+  .sound-equalizer {
+    display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; margin-left: 6px;
+  }
+  .sound-equalizer span {
+    width: 2.5px; height: 100%; background: var(--accent-primary); border-radius: 2px;
+    animation: eqWave 0.8s ease-in-out infinite alternate;
+  }
+  .sound-equalizer span:nth-child(2) { animation-delay: 0.2s; height: 60%; }
+  .sound-equalizer span:nth-child(3) { animation-delay: 0.4s; height: 80%; }
+  .sound-equalizer span:nth-child(4) { animation-delay: 0.1s; height: 40%; }
+  @keyframes eqWave { 0% { height: 20%; } 100% { height: 100%; } }
+
+  /* ================= IMAGE LIGHTBOX INSPECTOR ================= */
+  .image-lightbox-overlay {
+    position: fixed; inset: 0; z-index: 10000; background: rgba(15, 17, 23, 0.92);
+    display: none; flex-direction: column; backdrop-filter: blur(12px);
+    opacity: 0; transition: opacity .2s ease;
+  }
+  .image-lightbox-overlay.active { display: flex; opacity: 1; }
+  .lightbox-header {
+    display: flex; align-items: center; justify-content: space-between; padding: 14px 24px;
+    background: rgba(255, 255, 255, 0.04); border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: #FFFFFF;
+  }
+  .lightbox-title { font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+  .lightbox-actions { display: flex; align-items: center; gap: 8px; }
+  .lightbox-btn {
+    background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #FFFFFF; padding: 6px 12px; border-radius: 8px; font-size: 0.82rem; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; transition: all .15s; font-family: var(--font-body);
+  }
+  .lightbox-btn:hover { background: rgba(255, 255, 255, 0.16); }
+  .lightbox-btn.primary { background: var(--accent-primary); border-color: var(--accent-primary); }
+  .lightbox-body {
+    flex: 1; display: flex; overflow: hidden; position: relative;
+  }
+  .lightbox-canvas-area {
+    flex: 1; display: flex; align-items: center; justify-content: center; overflow: auto; padding: 24px;
+  }
+  .lightbox-img-element {
+    max-width: 90%; max-height: 85vh; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+    transition: transform .2s ease; cursor: grab;
+  }
+  .lightbox-inspection-drawer {
+    width: 380px; background: #18191E; border-left: 1px solid rgba(255, 255, 255, 0.08);
+    color: #E2E8F0; padding: 20px; overflow-y: auto; display: none; flex-direction: column; gap: 14px;
+  }
+  .lightbox-inspection-drawer.open { display: flex; }
+  .drawer-section-title { font-size: 0.85rem; font-weight: 700; color: var(--accent-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+  .drawer-meta-table { width: 100%; font-size: 0.8rem; border-collapse: collapse; }
+  .drawer-meta-table td { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .drawer-meta-table td:first-child { color: #94A3B8; width: 40%; }
 </style>
 </head>
 <body>
@@ -1835,6 +1993,10 @@
             </select>
           </div>
 
+          <button class="btn-toggle-sidebar" id="btn-toggle-canvas" title="Toggle Visual Canvas" style="border-radius:50%; margin-right:4px;">
+            <i data-lucide="layout" style="width:15px;height:15px;"></i>
+          </button>
+
           <button class="btn-toggle-sidebar" id="btn-export-thread" title="Export conversation" style="border-radius:50%; margin-right:4px;">
             <i data-lucide="download" style="width:15px;height:15px;"></i>
           </button>
@@ -1867,6 +2029,10 @@
 
               <button class="btn-voice-input" type="button" id="btn-voice-dictate" title="Dictate message">
                 <i data-lucide="mic" style="width:17px;height:17px;"></i>
+              </button>
+
+              <button class="btn-voice-input" type="button" id="btn-voice-mode" title="ChatGPT Advanced Voice Mode">
+                <i data-lucide="headphones" style="width:17px;height:17px;"></i>
               </button>
 
               <button class="btn-send" id="btn-send-message" type="submit" disabled title="Send message">
@@ -1984,6 +2150,100 @@
     </div>
     <div class="modal-footer">
       <button class="btn-modal cancel" id="export-modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ChatGPT Advanced Voice Mode Overlay -->
+<div class="voice-mode-overlay" id="voice-mode-overlay">
+  <div class="voice-mode-header">
+    <div class="voice-status-badge">
+      <div class="voice-status-dot" id="voice-status-dot"></div>
+      <span id="voice-status-text">Listening...</span>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px;">
+      <select class="voice-persona-select" id="voice-persona-select" title="Voice Persona">
+        <option value="alloy">Alloy (Balanced)</option>
+        <option value="echo">Echo (Warm)</option>
+        <option value="nova">Nova (Energetic)</option>
+        <option value="onyx">Onyx (Deep)</option>
+        <option value="shimmer">Shimmer (Expressive)</option>
+      </select>
+      <button class="btn-close-voice-mode" id="btn-close-voice-mode" title="Exit Voice Mode">
+        <i data-lucide="x" style="width:20px;height:20px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="voice-orb-wrapper" id="voice-orb-trigger" title="Tap to speak / interrupt">
+    <div class="voice-orb-ring voice-orb-ring-1"></div>
+    <div class="voice-orb-ring voice-orb-ring-2"></div>
+    <div class="voice-orb-core" id="voice-orb-core">
+      <i data-lucide="mic" id="voice-orb-icon" style="width:40px;height:40px;color:#FFFFFF;"></i>
+    </div>
+  </div>
+
+  <div class="voice-transcript-box">
+    <div id="voice-live-transcript">Tap the orb or speak to start...</div>
+    <div class="voice-transcript-hint" id="voice-sub-hint">Atlas Advanced Voice responds with real-time speech</div>
+  </div>
+
+  <div class="voice-controls-bar">
+    <button class="btn-voice-control-large btn-voice-interrupt" id="btn-voice-interrupt" title="Interrupt speech">
+      <i data-lucide="square" style="width:20px;height:20px;"></i>
+    </button>
+    <button class="btn-voice-control-large btn-voice-mic" id="btn-voice-mic-toggle" title="Mute/Unmute Mic">
+      <i data-lucide="mic" id="voice-mic-icon" style="width:26px;height:26px;"></i>
+    </button>
+    <button class="btn-voice-control-large btn-voice-interrupt" id="btn-voice-stop-mode" title="Done / End Call">
+      <i data-lucide="phone-off" style="width:22px;height:22px;color:#EF4444;"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Image Lightbox & Deep Inspection Modal -->
+<div class="image-lightbox-overlay" id="image-lightbox-overlay">
+  <div class="lightbox-header">
+    <div class="lightbox-title">
+      <i data-lucide="image" style="width:17px;height:17px;color:var(--accent-secondary);"></i>
+      <span id="lightbox-filename">Image Inspection</span>
+    </div>
+    <div class="lightbox-actions">
+      <button class="lightbox-btn" id="btn-lightbox-zoom-out" title="Zoom out"><i data-lucide="zoom-out" style="width:14px;height:14px;"></i></button>
+      <button class="lightbox-btn" id="btn-lightbox-zoom-reset" title="Reset Zoom">100%</button>
+      <button class="lightbox-btn" id="btn-lightbox-zoom-in" title="Zoom in"><i data-lucide="zoom-in" style="width:14px;height:14px;"></i></button>
+      <button class="lightbox-btn primary" id="btn-lightbox-inspect" title="Run multimodal computer vision audit">
+        <i data-lucide="scan" style="width:14px;height:14px;"></i>
+        <span>Deep Inspect</span>
+      </button>
+      <button class="lightbox-btn" id="btn-lightbox-ask" title="Ask Atlas about this image in chat">
+        <i data-lucide="message-square" style="width:14px;height:14px;"></i>
+        <span>Ask in Chat</span>
+      </button>
+      <button class="lightbox-btn" id="btn-lightbox-download" title="Download Image">
+        <i data-lucide="download" style="width:14px;height:14px;"></i>
+      </button>
+      <button class="lightbox-btn" id="btn-lightbox-close" title="Close Lightbox">
+        <i data-lucide="x" style="width:16px;height:16px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="lightbox-body">
+    <div class="lightbox-canvas-area" id="lightbox-canvas-area">
+      <img src="" alt="Inspection Target" class="lightbox-img-element" id="lightbox-img-element">
+    </div>
+
+    <div class="lightbox-inspection-drawer" id="lightbox-inspection-drawer">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <span class="drawer-section-title">Optical &amp; Visual Audit</span>
+        <button class="lightbox-btn" id="btn-close-drawer" style="padding:2px 6px;"><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>
+      </div>
+
+      <div id="lightbox-inspection-results">
+        <div style="font-size:0.85rem; color:#94A3B8;">Click <strong>Deep Inspect</strong> to run multimodal OCR, anomaly detection, and equipment verification.</div>
+      </div>
     </div>
   </div>
 </div>
