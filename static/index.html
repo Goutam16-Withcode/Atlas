@@ -2006,6 +2006,14 @@
   let showDeletedOnly = false;
   let currentDownloadKind = null; // 'pptx' | 'poster-pdf' | null
 
+  // ChatGPT State Variables
+  let activeModelMode = localStorage.getItem('atlas_model_mode') || 'auto';
+  let isWebSearchActive = false;
+  let isReasoningActive = false;
+  let activeAbortController = null;
+  let thinkingTimerInterval = null;
+  let thinkingStartTime = 0;
+
   const portalView = document.getElementById('portal-view');
   const dashboardView = document.getElementById('dashboard-view');
   const authForm = document.getElementById('auth-form');
@@ -2068,6 +2076,14 @@
   const renameModalCancel = document.getElementById('rename-modal-cancel');
   const renameModalConfirm = document.getElementById('rename-modal-confirm');
   const renameModalInput = document.getElementById('rename-modal-input');
+
+  const btnToggleTheme = document.getElementById('btn-toggle-theme');
+  const themeToggleIcon = document.getElementById('theme-toggle-icon');
+  const btnModelSelector = document.getElementById('btn-model-selector');
+  const modelMenu = document.getElementById('model-menu');
+  const selectedModelName = document.getElementById('selected-model-name');
+  const btnToggleWebSearch = document.getElementById('btn-toggle-websearch');
+  const btnToggleReasoning = document.getElementById('btn-toggle-reasoning');
 
   marked.setOptions({
     gfm: true, breaks: true,
@@ -2184,6 +2200,97 @@
       } catch (err) {
         console.error(err);
         alert('Failed to download file.');
+      }
+    });
+
+    // ChatGPT Theme Initialization
+    const savedTheme = localStorage.getItem('atlas_theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    if (themeToggleIcon) {
+      themeToggleIcon.setAttribute('data-lucide', savedTheme === 'dark' ? 'sun' : 'moon');
+    }
+
+    if (btnToggleTheme) {
+      btnToggleTheme.addEventListener('click', () => {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', nextTheme);
+        localStorage.setItem('atlas_theme', nextTheme);
+        if (themeToggleIcon) {
+          themeToggleIcon.setAttribute('data-lucide', nextTheme === 'dark' ? 'sun' : 'moon');
+          lucide.createIcons();
+        }
+      });
+    }
+
+    // ChatGPT Model Selector Initialization
+    const modelLabels = {
+      auto: 'Atlas 4.0 Auto',
+      fast: 'Atlas Fast (Groq 8B)',
+      reasoning: 'Atlas Deep Reasoning',
+      vision: 'Atlas Multimodal Vision'
+    };
+    if (selectedModelName) {
+      selectedModelName.textContent = modelLabels[activeModelMode] || 'Atlas 4.0';
+    }
+    if (modelMenu) {
+      modelMenu.querySelectorAll('.model-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.model === activeModelMode);
+        opt.addEventListener('click', () => {
+          activeModelMode = opt.dataset.model;
+          localStorage.setItem('atlas_model_mode', activeModelMode);
+          if (selectedModelName) selectedModelName.textContent = modelLabels[activeModelMode] || 'Atlas 4.0';
+          modelMenu.querySelectorAll('.model-option').forEach(o => o.classList.remove('active'));
+          opt.classList.add('active');
+          modelMenu.classList.remove('open');
+        });
+      });
+    }
+    if (btnModelSelector) {
+      btnModelSelector.addEventListener('click', (e) => {
+        e.stopPropagation();
+        modelMenu.classList.toggle('open');
+      });
+    }
+    document.addEventListener('click', (e) => {
+      if (modelMenu && !e.target.closest('#model-picker-dropdown')) {
+        modelMenu.classList.remove('open');
+      }
+    });
+
+    // ChatGPT Web Search & Deep Reasoning Toggles
+    if (btnToggleWebSearch) {
+      btnToggleWebSearch.addEventListener('click', () => {
+        isWebSearchActive = !isWebSearchActive;
+        btnToggleWebSearch.classList.toggle('active', isWebSearchActive);
+      });
+    }
+    if (btnToggleReasoning) {
+      btnToggleReasoning.addEventListener('click', () => {
+        isReasoningActive = !isReasoningActive;
+        btnToggleReasoning.classList.toggle('active', isReasoningActive);
+        if (isReasoningActive) {
+          activeModelMode = 'reasoning';
+        } else if (activeModelMode === 'reasoning') {
+          activeModelMode = 'auto';
+        }
+        if (selectedModelName) selectedModelName.textContent = modelLabels[activeModelMode] || 'Atlas 4.0';
+        if (modelMenu) {
+          modelMenu.querySelectorAll('.model-option').forEach(o => o.classList.toggle('active', o.dataset.model === activeModelMode));
+        }
+      });
+    }
+
+    // Stop button event
+    btnSendMessage.addEventListener('click', (e) => {
+      if (btnSendMessage.classList.contains('stop-mode')) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (activeAbortController) {
+          activeAbortController.abort();
+          activeAbortController = null;
+        }
+        resetSendButtonState();
       }
     });
 
