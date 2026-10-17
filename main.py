@@ -660,6 +660,8 @@ class ChatRequest(BaseModel):
     attachments: Optional[List[AttachmentItem]] = []
     language: Optional[str] = "auto"
     stream: Optional[bool] = False
+    model_mode: Optional[str] = "auto"
+    web_search: Optional[bool] = False
 
 
 class ChatResponse(BaseModel):
